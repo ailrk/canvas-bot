@@ -1,0 +1,57 @@
+# directory to stored downloaded files
+baseDir: .
+
+# canvas authentication information
+authentication:
+  # canvas api token. Please check this page to see how to get a token.
+  # https://github.com/hypothesis/lms/wiki/How-to-Test-the-Canvas-API
+  key: YOURKEY
+  # your canvas url
+  url: https://canvas.ubc.ca/
+
+# max file size for a single file
+maxFileSize: 300MB
+
+# limit of total file size.
+maxTotalSize: 10G
+
+# snapshotDir
+snapshotDir: .snapshot
+
+# enable to allow downloading videos
+allowVideo: false
+
+# enable to allow download link
+allowLink: false
+
+# specify stragegy for updating.
+# only download files that is not in current foler.
+# "newFileOnly" allow overwirte
+# "overwride" set verbosity of logging.
+update: newFileOnly
+
+# specify the verbosity of logging.
+# Three level: mute | verbose | vverbose
+verbosity: verbose
+
+# file name in this list will not be downloaded.
+fileBlackList:
+  - file1
+  - file2
+
+# file name in this list will be downloaded.
+# white list has higher priority than black list.
+fileWhiteList:
+  - file3
+  - file4
+
+# file types you allow to download.
+# white list has higher priority than black list.
+fileExtensionBlackList:
+  - .go
+  - .java
+
+# file types you allow to download.
+fileExtensionWhiteList:
+  - .pptx
+  - .jpg
