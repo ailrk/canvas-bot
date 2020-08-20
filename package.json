@@ -36,8 +36,8 @@
   },
   "dependencies": {
     "@types/yamljs": "^0.2.31",
+    "canvas-api-ts": "^0.1.0",
     "chalk": "^4.1.0",
-    "node-canvas-api": "^1.5.7",
     "promise-by-need": "^1.0.0",
     "state-monad-ts": "^1.0.2",
     "yamljs": "^0.3.0"
