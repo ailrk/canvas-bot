@@ -1,7 +1,10 @@
 # directory to stored downloaded files
+# if you comment this line files will be download in the
+# current directory.
 baseDir: .
 
 # canvas authentication information
+# This is mandatory.
 authentication:
   # canvas api token. Please check this page to see how to get a token.
   # https://github.com/hypothesis/lms/wiki/How-to-Test-the-Canvas-API
@@ -10,48 +13,56 @@ authentication:
   url: https://canvas.ubc.ca/
 
 # max file size for a single file
+# comment this line to ignore the limitation
 maxFileSize: 300MB
 
 # limit of total file size.
+# comment this line to ignore the limitation
 maxTotalSize: 10G
 
 # snapshotDir
+# snapshot helps you rollback, but occupies extra space.
+# comment this line to ignore snapshot
 snapshotDir: .snapshot
 
 # enable to allow downloading videos
+# need ffmpeg downloaded
 allowVideo: false
 
 # enable to allow download link
 allowLink: false
 
 # specify stragegy for updating.
-# only download files that is not in current foler.
-# "newFileOnly" allow overwirte
-# "overwride" set verbosity of logging.
+# | "newFileOnly"  only download files that is not in current foler.
+# | "overwride"    allow overwirte
 update: newFileOnly
 
 # specify the verbosity of logging.
 # Three level: mute | verbose | vverbose
 verbosity: verbose
 
+# File list has higher priority than Extension list.
+# White list has higher priority than black list.
+
 # file name in this list will not be downloaded.
 fileBlackList:
   - file1
   - file2
 
-# file name in this list will be downloaded.
+# if this field present, only file name in this list will be
+# downloaded.
 # white list has higher priority than black list.
 fileWhiteList:
   - file3
   - file4
 
-# file types you allow to download.
+# file types you want to exclude.
 # white list has higher priority than black list.
 fileExtensionBlackList:
   - .go
   - .java
 
-# file types you allow to download.
+# only file types here will downloaded.
 fileExtensionWhiteList:
   - .pptx
   - .jpg

@@ -1,6 +1,9 @@
 import {Path, mkPath} from './pathtools';
 import {Config, ConfigBuilder} from './types';
 import {parse} from 'yamljs';
+import fs from 'fs';
+import path from 'path';
+import {promisify} from 'util';
 import chalk from 'chalk';
 
 // smart constructor for default config.
@@ -13,11 +16,11 @@ export function mkDefaultConfig(): ConfigBuilder {
 
     verbosity: "verbose",
 
-    // default 500 MB
-    maxFileSize: 500 * 1024 * 1024,
+    // default no limit
+    maxFileSize: Infinity,
 
-    // default 2 GB
-    maxTotalSize: 2 * 1024 * 1024 * 1024,
+    // default no limit
+    maxTotalSize: Infinity,
 
     // snapshot directory
     snapshotDir: mkPath('./.snapshot'),
@@ -56,6 +59,10 @@ export async function loadConfig(p: Path): Promise<Config> {
 }
 
 async function readYaml(p: Path) {
-  const {path} = p;
-  return parse(path) as ConfigBuilder;
+  const readFile = promisify(fs.readFile);
+  const file = (await readFile(path.resolve(p.path))).toString();
+
+  const parsed = parse(file) as ConfigBuilder;
+  console.log(parsed);
+  return parsed;
 }
