@@ -8,6 +8,7 @@ import {convertToBytes} from './utils';
 import fs from 'fs';
 import {promisify} from 'util';
 
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -22,7 +23,6 @@ const question = (query: string) => {
 const readdir = promisify(fs.readdir);
 const mkdir = promisify(fs.mkdir);
 
-
 /**
  * Check the execution environment and ingegrity of the yaml config file
  * @param config a non parital config
@@ -30,15 +30,23 @@ const mkdir = promisify(fs.mkdir);
  */
 export async function healthCheck(config: Config) {
   const check1 = await checkBaseDir(config);
-  const check2 = await checkSnapshot(config);
-  const check3 = await checkDiskUsage(config);
-  const check4 = await checkFileSizeConstraint(config);
-  const check5 = await checkVideoSupport(config);
-  const check6 = await checkLinkSupport(config);
-  return configConfirm(check6);
+  const check2 = await checkSnapshot(check1);
+  const check3 = await checkDiskUsage(check2);
+  const check4 = await checkFileSizeConstraint(check3);
+  const check5 = await checkVideoSupport(check4);
+  const check6 = await checkLinkSupport(check5);
+  const end = check6;
+  if (await configConfirm(end)) {
+    return end;
+  }
+  console.log(chalk.yellow("aborting..."));
+  process.exit(0);
 }
 
 
+/**
+ * @param con
+ */
 async function configConfirm(config: Config) {
   const finalYamlConfig = yamljs.stringify(config);
   console.log(finalYamlConfig);
