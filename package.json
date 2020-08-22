@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@types/yamljs": "^0.2.31",
-    "canvas-api-ts": "^0.5.4",
+    "canvas-api-ts": "^0.5.6",
     "chalk": "^4.1.0",
     "check-disk-space": "^2.1.0",
     "node-ffmpeg": "0.0.0",
