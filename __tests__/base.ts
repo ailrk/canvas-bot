@@ -2,6 +2,7 @@ import {loadConfig} from '../src/config';
 import {mkPath, getLocalFolderTree} from '../src/pathtools';
 import {getCourseByUser} from 'canvas-api-ts/dist/wrapper/course';
 
+import {inspect} from 'util';
 describe("Basic modules check", () => {
   it("should parse successfully", async () => {
     const config = await loadConfig({path: "config-demo.yaml"});
@@ -20,8 +21,10 @@ describe("Util test", () => {
     const config = await loadConfig({path: "config-demo.yaml"});
     const tree = await getLocalFolderTree({
       ...config,
-      baseDir: mkPath("."),
+      baseDir: mkPath("./node_modules/chalk"),
     });
+    //console.log(inspect(tree, false, null, true)),
+
     expect(flag).toBe(false);
     expect(typeof tree.folderName === "string").toBe(true);
   })

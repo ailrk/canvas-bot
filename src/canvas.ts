@@ -1,6 +1,6 @@
 import {File, Course, ResponseType} from 'canvas-api-ts';
 import {Config, SpiderState} from './types';
-import {FolderTree} from './pathtools';
+import {FolderTree, FileIdentity} from './pathtools';
 
 /**
  * build up a FolderTree for ready files
@@ -10,26 +10,51 @@ import {FolderTree} from './pathtools';
  * @param readyFiles List of files that we decided to download.
  * @return a FolderTree represent the logic folder structure of files in readyFiles[]
  */
-export async function getCanvasFolderTree(props: {
-  readyFiles: ResponseType.File[],
-  readyFolders: ResponseType.Folder[],
-}): Promise<FolderTree> {
-  return new Promise(resolve => {
-    resolve(getCanvasFolderTree_(props));
-  });
+export async function getCanvasFolderTree(config: Config,
+  props: {readyFiles: ResponseType.File[], readyFolders: ResponseType.Folder[]}) {
+  return (getCanvasFolderTree_(config, props));
 }
-
-function getCanvasFolderTree_(props: {
+function getCanvasFolderTree_(config: Config, props: {
   readyFiles: ResponseType.File[],
   readyFolders: ResponseType.Folder[],
 }): FolderTree {
   const {readyFiles, readyFolders} = props;
 
-}
+  // construct root
+  const root: Partial<FolderTree> = {
+    folderName: config.baseDir.path,
+    parentFolder: null,
+  }
 
-function findParentFolder(ndoe: ResponseType.File | ResponseType.Folder) {
-}
+  // build Partial Folder trees for all folders with their files.
+  // this is a list of all sub parital trees including root.
+  const partialFolderTrees = readyFolders
+    .map(folder => {
+      // add a temporary partialFolderId, this will be removed later.
+      const thisTree = <Partial<FolderTree> & {partialFolderId_? : number}>{
+        partialFolderId: folder.parent_folder_id,
+        folderName: folder.name,
+        id: folder.id,
+      };
+      const filesInFolder = readyFiles
+        .filter(e => e.folder_id === folder.id)
+        .map(e => <FileIdentity>({
+          id: e.id,
+          filename: e.filename,
+          fileUrl: e.url,
+          parentFolder: thisTree
+        }));
+      return thisTree;
+    }).concat([root]);
 
+  // assemble Partial Folder trees
+  // for each node check if there is any other nodes that is waiting
+
+
+
+  return root;
+
+}
 
 /**
  * Show course

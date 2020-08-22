@@ -32,7 +32,8 @@ export interface FileIdentity {
   // tree build form canvas api or stored in snapshot.
   readonly fileUrl?: string,
 
-  readonly foldername: string,
+  // all files have a parent
+  parentFolder: FolderTree,
 
   // filename.
   readonly filename: string,
@@ -59,6 +60,9 @@ export type FolderTree = {
   // Thie field workds like _kind in a tag union, it marks the identity of a node.
   readonly folderName: string,
 
+  // only root FolderTree has null
+  parentFolder: FolderTree | null,
+
   // node values.
   files?: FileIdentity[],
 
@@ -68,7 +72,6 @@ export type FolderTree = {
   // mark if the node is differed from another tree.
   tag?: true,
 }
-
 
 
 /**
@@ -88,13 +91,8 @@ export async function getLocalFolderTree(config: Config) {
  *         These two tree will be compared and perform new file only update.
  */
 
-async function traverseDir(folderName: Path): Promise<FolderTree> {
-  return new Promise(resolve => {
-    const tree = traverseDir_(folderName);
-    return resolve(tree);
-  })
-}
-
+// @rec
+async function traverseDir(folderName: Path): Promise<FolderTree> {return traverseDir_(folderName);}
 export function traverseDir_(folderName: Path): FolderTree {
 
   const path = folderName.path;
@@ -107,27 +105,36 @@ export function traverseDir_(folderName: Path): FolderTree {
       return fs.lstatSync(e).isDirectory();
     });
 
-  const files: FileIdentity[] = names
-    .filter(e => fs.lstatSync(e).isFile())
-    .map(e => ({
-      foldername: path,
-      filename: e,
-    } as FileIdentity));
+  const files: string[] = names
+    .filter(e => fs.lstatSync(e).isFile());
 
-  // base case. no folder any more
+  // @base case. no folder any more
   if (folders.length === 0) {
-    return ({
+    const thisTree: Partial<FolderTree> = {
       folderName: path,
-      files: files,
-    } as FolderTree);
-  }
+      parentFolder: null,
+    };
+    thisTree.files = files.map(e => <FileIdentity>{
+      filename: e,
+      parentFolder: thisTree,
+    });
+    return <FolderTree>thisTree;
+  };
 
-  // inductive steps
-  return ({
+  // @inductive steps
+  const thisTree: Partial<FolderTree> = {
     folderName: path,
-    files: files,
-    path: folders.map(e => traverseDir_({path: e}))
-  } as FolderTree)
+    parentFolder: null,
+  };
+  thisTree.files = files.map(e => <FileIdentity>{
+    filename: e,
+    parentFolder: thisTree,
+  });
+  thisTree.path = folders.map(e => <FolderTree>{
+    ...traverseDir_(mkPath(e)),
+    parentFolder: thisTree,
+  })
+  return <FolderTree>thisTree;
 }
 
 
@@ -143,23 +150,25 @@ export function traverseDir_(folderName: Path): FolderTree {
  * @param pair a pair of FolderTree to get diffed.
  * @return a pair of trees with node diff from each other tagged.
  */
-export async function markFolderTreeDiff(
-  pair: [FolderTree, FolderTree]
-): [FolderTree, FolderTree] {
+// export async function markFolderTreeDiff(
+//   pair: [FolderTree, FolderTree]
+// ): [FolderTree, FolderTree] {
 
-  const [t1, t2] = pair;
+//   const [t1, t2] = pair;
 
 
-}
+// }
 
 /**
  * Check if two nodes are the same. If not, is because of different path
  * or different file they contains.
  * Note If two nodes are different, then even their files are the same they will
  * still be marked different.
+ * @return Iput FoldTree with different nodes being marked, plus the reason why it's marked.
  *
  */
-function markNodeDiff(a: FolderTree, b: FolderTree): {
+async function markNodeDiff(a: FolderTree, b: FolderTree) {return markNodeDiff_(a, b);}
+function markNodeDiff_(a: FolderTree, b: FolderTree): {
   a: FolderTree,
   b: FolderTree,
   reason: "differentFile" | "differentFolder" | "same"
@@ -170,7 +179,7 @@ function markNodeDiff(a: FolderTree, b: FolderTree): {
 
   // mark node. If two node are different then all there subtree
   // and files they contain are different.
-  if (a.folderName !== b.folderName ) {
+  if (a.folderName !== b.folderName) {
     return {
       a: {...a, tag: true},
       b: {...b, tag: true},
@@ -223,14 +232,27 @@ function markNodeDiff(a: FolderTree, b: FolderTree): {
 }
 
 /**
+ * Merge FolderTree a onto FolderTree b.
+ * Merging one tree to another means add nodes that been marked in the tree
+ * into the other tree.
+ * if two nodes are different with the reason "differentFolder", we look up there
+ * paraent folder until find the same ancestor.
+ *
+ * @param from FolderTree merge from
+ * @param to FolderTree merge into
+ * @return  a merged folder treee
  */
-export function mergeFolderTrees(a: FolderTree, b: FolderTree) {
-
+// @rec
+export async function mergeFolderTree(from: FolderTree, to: FolderTree): Promise<FolderTree> {
+  return mergeFolderTree(from, to);
 }
+function mergeFolderTrees_(from: FolderTree, to: FolderTree) {
 
-function sameFile(a: FileIdentity, b: FileIdentity): boolean {
-  if (a.id !== undefined && b.id !== undefined) {
-    return a.id === b.id;
+  // @base case
+  if (from.tag) {
+    //
+
   }
-  return a.filename === b.filename && a.foldername === b.foldername;
+  // @inductive step
+
 }
