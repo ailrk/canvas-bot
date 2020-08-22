@@ -1,6 +1,6 @@
 import {loadConfig} from '../src/config';
-import {traverseDir} from '../src/utils';
-import {mkPath} from '../src/pathtools';
+import {mkPath, getLocalFolderTree} from '../src/pathtools';
+import {getCourseByUser} from 'canvas-api-ts/dist/wrapper/course';
 
 describe("Basic modules check", () => {
   it("should parse successfully", async () => {
@@ -8,8 +8,18 @@ describe("Basic modules check", () => {
     console.log(config);
   });
 
-  it.only("should get the folder tree", () => {
-    const tree = traverseDir(mkPath("."));
-    console.log(tree);
+  it.only("should get the folder tree in the time out", async () => {
+    let flag = false;
+    setTimeout(() => {
+      flag = true;
+    }, 2000);
+
+    const config = await loadConfig({path: "config-demo.yaml"});
+    const tree = await getLocalFolderTree({
+      ...config,
+      baseDir: mkPath("."),
+    });
+    expect(flag).toBe(false);
+    expect(typeof tree.folderName === "string").toBe(true);
   })
 });

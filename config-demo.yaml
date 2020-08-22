@@ -12,13 +12,15 @@ authentication:
   # your canvas url
   url: https://canvas.ubc.ca/
 
+#### possible unit: MB, GB, KB. No space.
+
 # max file size for a single file
 # comment this line to ignore the limitation
 maxFileSize: 300MB
 
 # limit of total file size.
 # comment this line to ignore the limitation
-maxTotalSize: 10G
+maxTotalSize: 10GB
 
 # snapshotDir
 # snapshot helps you rollback, but occupies extra space.
@@ -41,8 +43,8 @@ update: newFileOnly
 # Three level: mute | verbose | vverbose
 verbosity: verbose
 
-# File list has higher priority than Extension list.
-# White list has higher priority than black list.
+#### File list has higher priority than Extension list.
+#### White list has higher priority than black list.
 
 # file name in this list will not be downloaded.
 fileBlackList:
