@@ -1,8 +1,54 @@
-import {File, ResponseType} from 'canvas-api-ts';
-import {Config} from './types';
+import {File, Course, ResponseType} from 'canvas-api-ts';
+import {Config, SpiderState} from './types';
 
+/**
+ * Show course
+ * @param courses courses returned from canvas
+ * @param status what types of courses get returned.
+ * @return list of courses
+ * Note courses should contain "course_progress" property,
+ * so the request for course should have field { include: ["course_progress"]},
+ */
+function getCourses(status: "completed" | "ongoing" | "all"
+) {
+  const courses = await Course.getCourses({
+    include: ["course_progress"]
+  });
 
-async function fileFilter(config: Config, files: ResponseType.File[]) {
+  return courses.filter(e => {
+    const a = e.course_progress?.requirement_count;
+    const b = e.course_progress?.requirement_completed_count;
+    const completed = !(a && b && (a / b) < 1);
+    status === "completed" ? completed :
+      status === "ongoing" ? !completed :
+        true;
+  })
+}
+
+async function selectCourses(courses: ResponseType.Course[], ids: number[]) {
+  courses.filter(e => ids.includes(e.id));
+}
+
+/**
+ * Create a list of files that satisfies the yaml config.
+ * it will perform black white list check and and update mode check
+ * @param config config information
+ * @param courses course been selected.
+ * @return A list of ResponseType.Files that are ready to be download.
+ */
+
+async function readyFileList(config: Config, courses: ResponseType.Course[]) {
+  return fileFilter(config, courses);
+}
+
+/**
+ * handle black white list filtering.
+ * @param config config information
+ * @param files files available to download.
+ * @return list of files satisfy the blacklist whitelist constraint in the yaml
+ *         config file
+ */
+function fileFilter(config: Config, files: ResponseType.File[]) {
   const filenameMap = new Map(files.map(e => [e.filename, e]));
   const preservedWhlteList = (() => {
     const wl: ResponseType.File[] = [];
@@ -34,4 +80,3 @@ async function fileFilter(config: Config, files: ResponseType.File[]) {
           && !config.fileExtensionWhiteList.includes(extension));
     }).concat(preservedWhlteList);
 }
-

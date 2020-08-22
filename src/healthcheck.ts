@@ -45,7 +45,7 @@ export async function healthCheck(config: Config) {
 
 
 /**
- * @param con
+ * @param confirm the final config
  */
 async function configConfirm(config: Config) {
   const finalYamlConfig = yamljs.stringify(config);
