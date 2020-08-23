@@ -96,7 +96,7 @@ function buildFolderTree_(
 ): FolderTree {
 
   // @rec
-  const recMut = (leaves: TempFolderTree[], others: TempFolderTree[]) => {
+  const go = (leaves: TempFolderTree[], others: TempFolderTree[]) => {
     // @base case.
     if (others.length === 0) return;
     const leavesIds = leaves.map(e => e.id_);
@@ -108,8 +108,8 @@ function buildFolderTree_(
     });
 
     type Partion = [typeof leaves, typeof others];
-    const [newLeaves, newOthers] = others.reduce(
-      ([ls, os]: Partion, o): Partion => {
+    const [newLeaves, newOthers] = others.reduce<Partion>(
+      ([ls, os], o): Partion => {
         if (leavesIds.includes(o.id_)) {
           return [[...ls, o], os];
         } else {
@@ -118,14 +118,14 @@ function buildFolderTree_(
       }, <Partion>[[], []]);
 
     // add leaves for new leaves
-    recMut(newLeaves, newOthers);
+    go(newLeaves, newOthers);
   };
 
   // remove id in each nodes, add top level folder tree to root.
   // it'stype safe because extra properties only been add into original one.
   const unscaffold: ((a: TempFolderTree) => FolderTree) = e => <FolderTree>e;
 
-  recMut(topLevelFolderTrees, otherFolderTrees)
+  go(topLevelFolderTrees, otherFolderTrees)
   return unscaffold(root);
 }
 

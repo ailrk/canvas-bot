@@ -170,93 +170,116 @@ export function traverseDir_(folderName: Path): FolderTree {
  * @return A tree with nodes of both trees. If a node is marked means it exists only
  *         in the from tree but not on to tree.
  */
-function folderTreeDiff(from: FolderTree, to: FolderTree) {
 
-  const {a, b, reason} = markNodeDiff_(from, to);
+export function folderTreeDiff(from: FolderTree, to: FolderTree) {
+  // pool with all nodes from both trees.
+  let treePool: Node[] = [];
+  const root = to;
 
-  switch (reason) {
-    case "same":
-      break
+  folderTreeVisitor(from, node => {
+    node.tag = true;
+    treePool.push(node);
+  });
 
-    case "differentFile":
-      //
-      break
+  folderTreeVisitor(to, node => {
+    treePool.push(node);
+  });
 
-    case "differentFolder":
-      //
-      break
-  }
+  // get rid of two root paths.
+  treePool = treePool.filter(e => e.parentFolder !== null);
+
+
+  console.log(treePool);
+}
+
+
+/**
+ * Build FolderTree from a list of nodes. This is used to merge trees.
+ * If there is only one root node, or several root nodes with the same
+ * identity, the final tree will use it as the common root node.
+ * If there are several different root nodes, it will create a new root
+ * node.
+ * @param trees: A list of nodes;
+ * @return a new folder tree.
+ */
+function buildFolderTreeFromList(trees: Node[]): FolderTree {
+  const [rootCandiates, others] =
+    trees.reduce<[FolderTree[], Node[]]>(([rootCandiates, others], v) => {
+      if (v._kind === "FolderTree" && v.parentFolder === null) {
+        return [[...rootCandiates, v], others];
+      }
+      return [rootCandiates, [...others, v]];
+
+    }, <[FolderTree[], Node[]]>[[], []]);
+
+  const root = mergeRoot(<FolderTree[]>rootCandiates);
+
+
+
 }
 
 /**
- * Check if two nodes are the same. If not, is because of different path
- * or different file they contains.
- * Note If two nodes are different, then even their files are the same they will
- * still be marked different.
- * @return Input FoldTree with different nodes being marked, plus the reason why it's marked.
- *
+ * Build a new root based on the root candidates list.
+ * @returns either a merged single root or a new root with candidates as it's sub nodes.
  */
-function markNodeDiff(a: FolderTree, b: FolderTree): {
-  a: FolderTree,
-  b: FolderTree,
-  reason: "differentFile" | "differentFolder" | "same"
-} {
+function mergeRoot(rootCandiates: FolderTree[]): FolderTree {
+  const uniqueName = new Set(rootCandiates.map(e => {
+    console.assert(e._kind === "FolderTree");
+    return (<FolderTree>e).folderName;
+  }));
 
-  const afilenames = a.files?.map(e => e.filename).sort();
-  const bfilenames = b.files?.map(e => e.filename).sort();
+  const mergeFiles = (list: FolderTree[]) =>
+    (<FolderTree["files"]>[])?.concat(...list.map(e => (<FolderTree>e).files)
+      .filter(notUndefined));
 
-  // mark node. If two node are different then all there subtree
-  // and files they contain are different.
-  if (a.folderName !== b.folderName) {
-    return {
-      a: {...a, tag: true},
-      b: {...b, tag: true},
-      reason: "differentFolder"
+  // only one real root
+  if (uniqueName.size === 1) {
+    return <FolderTree>{
+      _kind: "FolderTree",
+      parentFolder: null,
+      files: mergeFiles(rootCandiates),
+    }
+
+    // some roots needs to be merges.
+  } else if (uniqueName.size < rootCandiates.length) {
+
+    const root_ = <FolderTree>{
+      _kind: "FolderTree",
+      parentFolder: null,
     };
+
+    const partitioned = rootCandiates.reduce((b, a) => {
+      b.get((<FolderTree>a).folderName)?.push(<FolderTree>a);
+      return b;
+    }, (() => {
+      const map = new Map<string, FolderTree[]>();
+      uniqueName.forEach(e => {
+        map.set(e, []);
+      });
+      return map;
+    })());
+
+    // one subtree each uniqueName.
+    const path = Array.from(uniqueName).map(e => {
+      const toBeMergedList = partitioned.get(e)!;
+      return <FolderTree>{
+        _kind: "FolderTree",
+        parentFolder: root_,
+        folderName: e,
+        files: mergeFiles(toBeMergedList),
+      }
+    });
+
+    root_.path = path;
+    return root_;
   }
 
-  // mark files
-  if (afilenames === undefined || bfilenames === undefined) {
-    // all files are different
-    return {
-      a: {
-        ...a,
-        files: a.files ? a.files.map(e => ({...e, tag: true})) : undefined,
-      },
-
-      b: {
-        ...b,
-        files: b.files ? b.files.map(e => ({...e, tag: true})) : undefined,
-      },
-
-      reason: "differentFile",
-    }
+  // nothing to merge.
+  return <FolderTree>{
+    _kind: "FolderTree",
+    parentFolder: null,
+    path: rootCandiates,
   }
-
-  // find and mark set difference between two list of FileIdentity,
-  const seta = new Set(afilenames);
-  const setb = new Set(bfilenames);
-  const notIna = new Set([...bfilenames].filter(e => !seta.has(e)))
-  const notInb = new Set([...afilenames].filter(e => !setb.has(e)));
-
-  if (notIna.size + notInb.size > 0) {
-    return {
-      a: {
-        ...a,
-        files: a.files?.filter(e => notInb.has(e.filename))
-          .map(e => ({...e, tag: true}))
-      },
-      b: {
-        ...b,
-        files: b.files?.filter(e => notInb.has(e.filename))
-          .map(e => ({...e, tag: true}))
-      },
-      reason: "differentFile"
-    }
-  }
-
-  // exactly the same node.
-  return {a, b, reason: "same"};
 }
 
 

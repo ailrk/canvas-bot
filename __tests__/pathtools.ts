@@ -1,5 +1,5 @@
 import {loadConfig} from '../src/config';
-import {mkPath, getLocalFolderTree, folderTreeVisitor, Node} from '../src/pathtools';
+import {mkPath, getLocalFolderTree, folderTreeVisitor, Node, folderTreeDiff} from '../src/pathtools';
 import {inspect} from 'util';
 
 describe.skip("Basic modules check", () => {
@@ -9,7 +9,7 @@ describe.skip("Basic modules check", () => {
   });
 });
 
-describe("Util test", () => {
+describe("Tree test", () => {
   it.skip("should get the folder tree in the time out", async () => {
     let flag = false;
     setTimeout(() => {
@@ -46,7 +46,22 @@ describe("Util test", () => {
     expect(tree === tree1).toBe(false);
 
     done();
-  })
-});
+  });
 
+  it.only("tree diff", async done => {
+    const config = await loadConfig({path: "config-demo.yaml"});
+    const tree1 = await getLocalFolderTree({
+      ...config,
+      baseDir: mkPath("./node_modules/escalade"),
+    });
+    const tree2 = await getLocalFolderTree({
+      ...config,
+      baseDir: mkPath("./node_modules/escalade"),
+    });
+
+    folderTreeDiff(tree1, tree2);
+
+    done();
+  });
+});
 
