@@ -1,17 +1,5 @@
-import {Config} from './types';
-import path from 'path';
-import fs from 'fs';
-import {notUndefined} from './utils';
-
-export type Path = {readonly path: string}
-export function mkPath(p: string): Path {
-  return {
-    path: path.resolve(p),
-  };
-}
-
-// This is one of the major data structure for implementing new file only update,
-// another one is FolderTree.
+// This module contains some diff tree related functions. The tree is used
+// to implemented new file only update.
 //
 // To only update new files we don't have in local folder, we
 // build two FolderTrees: one for files in the base directory and the other for
@@ -24,6 +12,19 @@ export function mkPath(p: string): Path {
 //
 // Two trees will be merged after files get download, and the result will be
 // saved as snapshot.
+
+import {Config} from './types';
+import path from 'path';
+import fs from 'fs';
+import {notUndefined} from './utils';
+
+export type Path = {readonly path: string}
+export function mkPath(p: string): Path {
+  return {
+    path: path.resolve(p),
+  };
+}
+
 interface Tagged {
   tag?: boolean;
 
@@ -189,7 +190,6 @@ export function folderTreeDiff(from: FolderTree, to: FolderTree) {
   treePool = treePool.filter(e => e.parentFolder !== null);
 
   const mergedTree = buildFolderTreeFromList(treePool);
-
 
 
   console.log(treePool);

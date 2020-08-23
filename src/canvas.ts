@@ -2,6 +2,10 @@ import {File, Course, ResponseType} from 'canvas-api-ts';
 import {Config, SpiderState} from './types';
 import {FolderTree, FileIdentity, mkParialRoot, folderTreeVisitor} from './pathtools';
 import {Identity, Thaw} from './utils';
+import fs from 'fs';
+import path from 'path';
+import {promisify} from 'util';
+
 
 // define scaffolding types.
 type TempIdMarker = {
@@ -128,6 +132,50 @@ function buildFolderTree_(
   go(topLevelFolderTrees, otherFolderTrees)
   return unscaffold(root);
 }
+
+
+/**
+ * Download tagged file in the diff tree, or if it's a tagged
+ * folder, create it.
+ * @param tree a diffed tree
+ */
+export async function fetchDiffTree(config: Config, tree: FolderTree) {
+  type BucketElement = {
+    stream: NodeJS.ReadableStream,
+    filepath: string
+  };
+  const bucket: Promise<BucketElement>[] = [];
+
+  folderTreeVisitor(tree, async node => {
+    if (node.tag) {
+
+      switch (node._kind) {
+        case "FileIdentity":
+          const url = node.fileUrl;
+          if (url !== undefined) {
+
+            const promise = new Promise<BucketElement>(async resolve => {
+              const {stream} = await File.fetchFileByUrl(url);
+              resolve({stream: stream, filepath: node.name});
+            });
+            bucket.push(promise);
+          }
+
+          break
+        case "FolderTree":
+          await (promisify(fs.mkdir))(path.resolve(node.name));
+          break
+      }
+    }
+  });
+
+
+  const streams = await Promise.all(bucket);
+  streams.forEach(async ({stream, filepath}) => {
+    await File.storeByPath(filepath, stream);
+  })
+}
+
 
 /**
  * Combine path name.
