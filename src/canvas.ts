@@ -43,7 +43,7 @@ export function getCanvasFolderTree(config: Config, props: {
       const thisTree = <TempFolderTree>{
         _kind: "FolderTree",
         parentFolderId: folder.parent_folder_id,
-        folderName: folder.name,
+        name: folder.name,
         id_: folder.id,
       };
 
@@ -52,7 +52,7 @@ export function getCanvasFolderTree(config: Config, props: {
         .map(e => <FileIdentity>({
           _kind: "FileIdentity",
           id: e.id,
-          filename: e.filename,
+          name: e.filename,
           fileUrl: e.url,
           parentFolder: thisTree
         }));
@@ -135,16 +135,16 @@ function buildFolderTree_(
 function transformFullTreePath(tree: FolderTree) {
   return folderTreeVisitor(tree, node => {
     if (node._kind === "FolderTree") {
-      const parentFolderName = node.parentFolder?.folderName;
-      (node as Thaw<typeof node>).folderName =
+      const parentFolderName = node.parentFolder?.name;
+      (node as Thaw<typeof node>).name =
         parentFolderName ?
-          `${parentFolderName}/${node.folderName}` :
-          node.folderName;
+          `${parentFolderName}/${node.name}` :
+          node.name;
     }
 
     if (node._kind === "FileIdentity") {
-      const parentFolderName = node.parentFolder?.folderName;
-      (node as Thaw<typeof node>).filename = `${parentFolderName}/${node.filename}`;
+      const parentFolderName = node.parentFolder?.name;
+      (node as Thaw<typeof node>).name = `${parentFolderName}/${node.name}`;
     }
   })
 }

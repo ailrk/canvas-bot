@@ -45,7 +45,7 @@ export interface FileIdentity extends Tagged {
   parentFolder: FolderTree,
 
   // filename.
-  readonly filename: string,
+  readonly name: string,
 }
 
 
@@ -65,7 +65,7 @@ export type FolderTree = {
   // for canvas FolderTree each course will has the course name as
   // a corresponding folder name.
   // Thie field workds like _kind in a tag union, it marks the identity of a node.
-  readonly folderName: string,
+  readonly name: string,
 
   // only root FolderTree has null
   parentFolder: FolderTree | null,
@@ -94,7 +94,7 @@ export function mkParialRoot(config: Config): Partial<FolderTree> {
   console.log(config);
   return <Partial<FolderTree>>{
     _kind: "FolderTree",
-    folderName: config.baseDir.path,
+    name: config.baseDir.path,
     parentFolder: null,
   }
 }
@@ -127,11 +127,11 @@ export function traverseDir_(folderName: Path): FolderTree {
   if (folders.length === 0) {
     const thisTree: Partial<FolderTree> = {
       _kind: "FolderTree",
-      folderName: path,
+      name: path,
       parentFolder: null,
     };
     thisTree.files = files.map(e => <FileIdentity>{
-      filename: e,
+      name: e,
       parentFolder: thisTree,
     });
     return <FolderTree>thisTree;
@@ -140,12 +140,12 @@ export function traverseDir_(folderName: Path): FolderTree {
   // @inductive steps
   const thisTree: Partial<FolderTree> = {
     _kind: "FolderTree",
-    folderName: path,
+    name: path,
     parentFolder: null,
   };
   thisTree.files = files.map(e => <FileIdentity>{
     _kind: "FileIdentity",
-    filename: e,
+    name: e,
     parentFolder: thisTree,
   });
   thisTree.path = folders.map(e => <FolderTree>{
@@ -188,6 +188,9 @@ export function folderTreeDiff(from: FolderTree, to: FolderTree) {
   // get rid of two root paths.
   treePool = treePool.filter(e => e.parentFolder !== null);
 
+  const mergedTree = buildFolderTreeFromList(treePool);
+
+
 
   console.log(treePool);
 }
@@ -216,31 +219,30 @@ function buildFolderTreeFromList(trees: Node[]): FolderTree {
   const root = mergeRoot(<FolderTree[]>rootCandiates);
 
   // get the top level Leaves.
-  const [topLevelFolderTrees, otherFolderTrees] = (() => {
+  const [topLevelFolderTrees, otherFolderTrees] = <Partition>(() => {
     if (root.path !== undefined) {
       return [root.path, others];
     }
-    return others.reduce<Partition>(([ls, os], v) => {
-      if (v.parentFolder!.folderName === root.folderName
+    return others.reduce<[FolderTree[], Node[]]>(([ls, os], v) => {
+      if (v.parentFolder!.name === root.name
         && v._kind === "FolderTree") {
         return [[...ls, v], os];
       }
       return [ls, [...os, v]];
     }, [[], []])
-
   })();
 
   // @rec
   const go = (leaves: FolderTree[], others: Node[]) => {
     // @base case
     if (others.length === 0) return;
-    const leavesFolderNames = leaves.map(e => e.folderName);
+    const leavesFolderNames = leaves.map(e => e.name);
 
     // add nodes leaves path and files.
     leaves.forEach(e => {
       const [files, path] = others.reduce<[FileIdentity[], FolderTree[]]>(
         ([fs, ps], v) => {
-          if (v.parentFolder?.folderName === e.folderName) {
+          if (v.parentFolder?.name === e.name) {
             switch (v._kind) {
               case "FolderTree":
                 return [fs, [...ps, v]];
@@ -256,7 +258,7 @@ function buildFolderTreeFromList(trees: Node[]): FolderTree {
 
     const [newLeaves, newOthers] = others.reduce<Partition>(
       ([ls, os], o): Partition => {
-        if (leavesFolderNames.includes((<FolderTree>o).folderName)) {
+        if (leavesFolderNames.includes((<FolderTree>o).name)) {
           return [[...ls, <FolderTree>o], os];
         } else {
           return [ls, [...os, o]];
@@ -275,63 +277,111 @@ function buildFolderTreeFromList(trees: Node[]): FolderTree {
  * @returns either a merged single root or a new root with candidates as it's sub nodes.
  */
 function mergeRoot(rootCandiates: FolderTree[]): FolderTree {
-  const uniqueName = new Set(rootCandiates.map(e => {
-    console.assert(e._kind === "FolderTree");
-    return (<FolderTree>e).folderName;
-  }));
+  const mergedCandidates = mergeNode(rootCandiates);
+  if (mergedCandidates.length === 1) {
+    return mergedCandidates[0];
+  }
 
-  const mergeFiles = (list: FolderTree[]) =>
-    (<FolderTree["files"]>[])?.concat(...list.map(e => (<FolderTree>e).files)
-      .filter(notUndefined));
+  const root = <FolderTree>{
+    _kind: "FolderTree",
+    parentFolder: null,
+  };
 
-  // only one real root
-  if (uniqueName.size === 1) {
-    return <FolderTree>{
+  root.path = mergedCandidates;
+  mergedCandidates.forEach(e => {
+    e.parentFolder = root;
+  })
+  return root;
+};
+
+
+/**
+ * Merge nodes with the same identity from a FolderTree list.
+ * If a merge happen between a marked and a unmarked node, leave the tag.
+ * @return List of merged FolderTrees with no duplicated identity.
+ */
+function mergeNode(treeList: FolderTree[]): FolderTree[] {
+
+  const uniqueFolderName = new Set(treeList
+    .filter(e => e._kind === "FolderTree")
+    .map(e => e.name));
+
+  // everything merge into one node, their files should be shared.
+  if (uniqueFolderName.size === 1) {
+    return [<FolderTree>{
       _kind: "FolderTree",
       parentFolder: null,
-      files: mergeFiles(rootCandiates),
-    }
+      files: mergeFiles(treeList),
+    }]
 
-    // some roots needs to be merges.
-  } else if (uniqueName.size < rootCandiates.length) {
+    // some needs to be merges.
+  } else if (uniqueFolderName.size < treeList.length) {
 
     const root_ = <FolderTree>{
       _kind: "FolderTree",
       parentFolder: null,
     };
 
-    const partitioned = rootCandiates.reduce((b, a) => {
-      b.get((<FolderTree>a).folderName)?.push(<FolderTree>a);
-      return b;
-    }, (() => {
-      const map = new Map<string, FolderTree[]>();
-      uniqueName.forEach(e => {
-        map.set(e, []);
-      });
-      return map;
-    })());
+    const partitioned = partitionUnique(treeList);
 
     // one subtree each uniqueName.
-    const path = Array.from(uniqueName).map(e => {
+    const path = Array.from(uniqueFolderName).map(e => {
       const toBeMergedList = partitioned.get(e)!;
       return <FolderTree>{
         _kind: "FolderTree",
         parentFolder: root_,
-        folderName: e,
+        name: e,
         files: mergeFiles(toBeMergedList),
       }
     });
 
-    root_.path = path;
-    return root_;
+    return path;
   }
 
   // nothing to merge.
-  return <FolderTree>{
-    _kind: "FolderTree",
-    parentFolder: null,
-    path: rootCandiates,
-  }
+  return treeList;
+}
+
+/**
+ * merge files of FolderTrees with the same identity.
+ * if there are duplicated files, remove the tag.
+ */
+function mergeFiles(folderTreesTobeMerged: FolderTree[]) {
+  const allFiles = (<FolderTree["files"]>[])?.concat(
+    ...folderTreesTobeMerged.map(e => e.files)
+      .filter(notUndefined));
+  // not files
+  if (allFiles === undefined) return undefined;
+  const partitionedMap = partitionUnique(allFiles);
+  Array.from(partitionedMap.keys()).reduce<FileIdentity[]>((list, key) => {
+    const partition = partitionedMap.get(key)!;
+    return [...list, partition.reduce<FileIdentity>((b, a) => {
+      if (!a.tag || !b.tag) {
+        // duplcate file, removethe tag.
+        return {...a, tag: false}
+      }
+      // all other cases, keep the tag.
+      return {...a, tag: true}
+    }, partition[0])]
+  }, []);
+}
+
+
+/**
+ * Partition elements with the same name into one list.
+ */
+function partitionUnique<T extends {name: string}>(list: T[]) {
+  const uniqueNames = new Set(list.map(e => e.name));
+  const partitionedMap = list.reduce((b, a) => {
+    b.get(a.name)?.push(a);
+    return b;
+  }, (() => {
+    const map = new Map<string, T[]>();
+    uniqueNames.forEach(e => {map.set(e, []);});
+    return map;
+  })());
+
+  return partitionedMap;
 }
 
 
@@ -349,7 +399,6 @@ export function folderTreeVisitor(node: FolderTree, f: (node: Node) => void): Fo
 export function folderTreeVisitor_(
   node: Node,
   f: (node: Node) => void) {
-
   // mutate the node
   f(node);
 
