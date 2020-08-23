@@ -69,6 +69,5 @@ async function readYaml(p: Path) {
   const file = (await readFile(path.resolve(p.path))).toString();
 
   const parsed = parse(file) as ConfigBuilder;
-  console.log(parsed);
   return parsed;
 }

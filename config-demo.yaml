@@ -57,14 +57,16 @@ fileBlackList:
 fileWhiteList:
   - file3
   - file4
+  - Topic2.ExhaustiveGridSearch.pdf
 
 # file types you want to exclude.
 # white list has higher priority than black list.
 fileExtensionBlackList:
-  - .go
-  - .java
+  - go
+  - java
 
 # only file types here will downloaded.
 fileExtensionWhiteList:
-  - .pptx
-  - .jpg
+  - pptx
+  - jpg
+  - pdf

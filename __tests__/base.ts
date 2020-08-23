@@ -1,9 +1,9 @@
 import {loadConfig} from '../src/config';
-import {mkPath, getLocalFolderTree} from '../src/pathtools';
+import {mkPath, getLocalFolderTree, folderTreeVisitor, Node} from '../src/pathtools';
 import {getCourseByUser} from 'canvas-api-ts/dist/wrapper/course';
 
 import {inspect} from 'util';
-describe("Basic modules check", () => {
+describe.skip("Basic modules check", () => {
   it("should parse successfully", async () => {
     const config = await loadConfig({path: "config-demo.yaml"});
     expect(typeof config.authentication.key === "string").toBe(true);
@@ -12,7 +12,7 @@ describe("Basic modules check", () => {
 });
 
 describe("Util test", () => {
-  it.only("should get the folder tree in the time out", async () => {
+  it.skip("should get the folder tree in the time out", async () => {
     let flag = false;
     setTimeout(() => {
       flag = true;
@@ -23,10 +23,33 @@ describe("Util test", () => {
       ...config,
       baseDir: mkPath("./node_modules/chalk"),
     });
-    //console.log(inspect(tree, false, null, true)),
+    console.log(inspect(tree, false, null, true));
 
     expect(flag).toBe(false);
     expect(typeof tree.folderName === "string").toBe(true);
   })
 
+  it("Tree", async done => {
+    const config = await loadConfig({path: "config-demo.yaml"});
+    const tree = await getLocalFolderTree({
+      ...config,
+      baseDir: mkPath("./node_modules/escalade"),
+    });
+
+    const tree1 = await folderTreeVisitor(tree, (a: Node) => {
+      if (a._kind === "FolderTree") {
+        a.tag = false;
+      }
+    })
+
+    // console.log(tree === tree1);
+    // console.log(inspect(tree1, false, 3, true));
+    expect(tree.visited).toBe(false);
+
+    expect(tree === tree1).toBe(false);
+
+    done();
+  })
 });
+
+

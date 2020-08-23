@@ -45,6 +45,7 @@ function getCanvasFolderTree_(config: Config, props: {
       // add a temporary partialFolderParaentId_ and id_.
       // these will be removed once the tree is built.
       const thisTree = <TempFolderTree>{
+        _kind: "FolderTree",
         parentFolderId: folder.parent_folder_id,
         folderName: folder.name,
         id_: folder.id,
@@ -53,6 +54,7 @@ function getCanvasFolderTree_(config: Config, props: {
       const filesInFolder = readyFiles
         .filter(e => e.folder_id === folder.id)
         .map(e => <FileIdentity>({
+          _kind: "FileIdentity",
           id: e.id,
           filename: e.filename,
           fileUrl: e.url,
@@ -82,7 +84,9 @@ function getCanvasFolderTree_(config: Config, props: {
 
   // 4. Recursively add new node to the top level leaves.
   // this has side effect, and it mutate root.path.
-  return buildFolderTree_(root, topLevelFolderTrees, otherFolderTrees);
+  const finalTree = buildFolderTree_(root, topLevelFolderTrees, otherFolderTrees);
+  return finalTree;
+
 }
 function buildFolderTree_(
   root: TempFolderTree,
@@ -133,7 +137,7 @@ function buildFolderTree_(
  * @param status what types of courses get returned.
  * @return list of courses
  */
-export async function getCourses(status: "completed" | "ongoing" | "all"
+export async function getCourses(status: "completed" | "ongoing" | "all" = "all"
 ) {
   const courses = await Course.getCoursesByUser("self", {
     enrollment_state: "active",
@@ -167,7 +171,7 @@ async function selectCourses(courses: ResponseType.Course[], ids: number[]) {
  * @return A list of ResponseType.Files that are ready to be download.
  */
 
-async function readyFiles(config: Config, courses: ResponseType.Course[]) {
+export async function getReadyFiles(config: Config, courses: ResponseType.Course[]) {
   const nestedfile = await Promise.all(courses.map(e => File.getCourseFiles(e.id, {})));
   const files = ([] as ResponseType.File[]).concat(...nestedfile);
 
@@ -179,7 +183,7 @@ async function readyFiles(config: Config, courses: ResponseType.Course[]) {
  * Note  We don't need to recursively request for nested folders because
  * File.getCourseFolders will also list all the sub folders.
  */
-async function readyFolders(files: ResponseType.File[], courses: ResponseType.Course[]) {
+export async function getReadyFolders(files: ResponseType.File[], courses: ResponseType.Course[]) {
   const nestedfolders = await Promise.all(courses.map(e => File.getCourseFolders(e.id)));
   const folders = ([] as ResponseType.Folder[]).concat(...nestedfolders);
   const readyFileFolderIds = files.map(e => e.folder_id);
@@ -195,7 +199,7 @@ async function readyFolders(files: ResponseType.File[], courses: ResponseType.Co
  */
 function fileFilter(config: Config, files: ResponseType.File[]) {
   const filenameMap = new Map(files.map(e => [e.filename, e]));
-  const preservedWhlteList = (() => {
+  const preservedWhiteList = (() => {
     const wl: ResponseType.File[] = [];
     // perserve white list.
     for (const w of config.fileWhiteList) {
@@ -209,6 +213,7 @@ function fileFilter(config: Config, files: ResponseType.File[]) {
     return wl;
   })();
 
+
   // filter blacklist
   for (const b of config.fileBlackList) {
     if (filenameMap.has(b)) {
@@ -219,9 +224,11 @@ function fileFilter(config: Config, files: ResponseType.File[]) {
   // filter extension and combine preserved white list.
   return files.filter(
     e => {
-      const extension = e.filename.split(".").pop();
-      return (extension === undefined || extension.length === 0)
-        || (config.fileExtensionBlackList.includes(extension)
-          && !config.fileExtensionWhiteList.includes(extension));
-    }).concat(preservedWhlteList);
+      const extension = e.mime_class;
+
+      const inBlackList = config.fileExtensionBlackList.includes(extension);
+      const inWhiteList = config.fileExtensionWhiteList.includes(extension);
+
+      return inWhiteList || !inBlackList;
+    }).concat(preservedWhiteList);
 }
