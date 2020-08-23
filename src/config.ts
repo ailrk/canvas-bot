@@ -46,6 +46,7 @@ function authenticated<T extends {authentication?: Auth}, U extends T & {authent
 
 export async function loadConfig(p: Path): Promise<Config> {
   const yaml = await readYaml(p);
+
   const {maxTotalSize, maxFileSize} = yaml;
 
   const config = {
@@ -68,6 +69,9 @@ async function readYaml(p: Path) {
   const readFile = promisify(fs.readFile);
   const file = (await readFile(path.resolve(p.path))).toString();
 
-  const parsed = parse(file) as ConfigBuilder;
-  return parsed;
+  const parsed = parse(file) as any;
+  parsed.baseDir = mkPath(parsed.baseDir);
+  parsed.snapshotDir = mkPath(parsed.snapshotDir);
+
+  return parsed as ConfigBuilder;
 }

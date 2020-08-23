@@ -1,22 +1,9 @@
 import {File, Course, ResponseType} from 'canvas-api-ts';
 import {Config, SpiderState} from './types';
-import {FolderTree, FileIdentity, mkParialRoot} from './pathtools';
-import {Identity} from './utils';
+import {FolderTree, FileIdentity, mkParialRoot, folderTreeVisitor} from './pathtools';
+import {Identity, Thaw} from './utils';
 
-/**
- * build up a FolderTree for ready files
- * We know filename, foldername and folder id, so we have enough information
- * to make a FolderTree resemble the local base directory FolderTree.
- * Comparing this two tree allows us to keep track of changes.
- * @param readyFiles List of files that we decided to download.
- * @return a FolderTree represent the logic folder structure of files in readyFiles[]
- */
-export async function getCanvasFolderTree(
-  config: Config,
-  props: {readyFiles: ResponseType.File[], readyFolders: ResponseType.Folder[]}) {
-  return (getCanvasFolderTree_(config, props));
-}
-// 0. define scaffolding types.
+// define scaffolding types.
 type TempIdMarker = {
   parentFolderId?: number,
   id_?: number
@@ -28,7 +15,16 @@ type TempFolderTree = Partial<Identity<
   & {parentFolder: TempFolderTree | null}
   & {path?: TempFolderTree[]}
   & TempIdMarker>>;
-function getCanvasFolderTree_(config: Config, props: {
+
+/**
+ * build up a FolderTree for ready files
+ * We know filename, foldername and folder id, so we have enough information
+ * to make a FolderTree resemble the local base directory FolderTree.
+ * Comparing this two tree allows us to keep track of changes.
+ * @param readyFiles List of files that we decided to download.
+ * @return a FolderTree represent the logic folder structure of files in readyFiles[]
+ */
+export function getCanvasFolderTree(config: Config, props: {
   readyFiles: ResponseType.File[],
   readyFolders: ResponseType.Folder[],
 }): FolderTree {
@@ -38,8 +34,8 @@ function getCanvasFolderTree_(config: Config, props: {
   // 1. construct root
   const root = <TempFolderTree>mkParialRoot(config);
 
-  // 2. build Partial Folder trees for all folders with their files.
-  //    this is a list of all sub parital.
+  // 2. build a list of partial FolderTrees, each folder will contain
+  //    their files.
   const partialFolderTrees = readyFolders
     .map(folder => {
       // add a temporary partialFolderParaentId_ and id_.
@@ -80,14 +76,19 @@ function getCanvasFolderTree_(config: Config, props: {
     return partialFolderTrees.filter(a => !ids.includes(a.id_))
   })();
 
+  // circularly refer to each other.
   root.path = topLevelFolderTrees;
+  topLevelFolderTrees.forEach(e => {
+    e.parentFolder = root;
+  })
 
   // 4. Recursively add new node to the top level leaves.
   // this has side effect, and it mutate root.path.
   const finalTree = buildFolderTree_(root, topLevelFolderTrees, otherFolderTrees);
-  return finalTree;
-
+  return transformFullTreePath(finalTree);
 }
+
+
 function buildFolderTree_(
   root: TempFolderTree,
   topLevelFolderTrees: TempFolderTree[],
@@ -128,6 +129,25 @@ function buildFolderTree_(
   return unscaffold(root);
 }
 
+/**
+ * Combine path name.
+ */
+function transformFullTreePath(tree: FolderTree) {
+  return folderTreeVisitor(tree, node => {
+    if (node._kind === "FolderTree") {
+      const parentFolderName = node.parentFolder?.folderName;
+      (node as Thaw<typeof node>).folderName =
+        parentFolderName ?
+          `${parentFolderName}/${node.folderName}` :
+          node.folderName;
+    }
+
+    if (node._kind === "FileIdentity") {
+      const parentFolderName = node.parentFolder?.folderName;
+      (node as Thaw<typeof node>).filename = `${parentFolderName}/${node.filename}`;
+    }
+  })
+}
 
 /**
  * Show course

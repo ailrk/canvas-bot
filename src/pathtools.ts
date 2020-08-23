@@ -91,6 +91,7 @@ export async function getLocalFolderTree(config: Config) {
 
 
 export function mkParialRoot(config: Config): Partial<FolderTree> {
+  console.log(config);
   return <Partial<FolderTree>>{
     _kind: "FolderTree",
     folderName: config.baseDir.path,
@@ -169,19 +170,18 @@ export function traverseDir_(folderName: Path): FolderTree {
  * @return A tree with nodes of both trees. If a node is marked means it exists only
  *         in the from tree but not on to tree.
  */
-export async function folderTreeDiff(a: FolderTree, b: FolderTree) {
-}
-
-function folderTreeDiff_(from: FolderTree, to: FolderTree) {
+function folderTreeDiff(from: FolderTree, to: FolderTree) {
 
   const {a, b, reason} = markNodeDiff_(from, to);
 
   switch (reason) {
     case "same":
       break
+
     case "differentFile":
       //
       break
+
     case "differentFolder":
       //
       break
@@ -196,8 +196,7 @@ function folderTreeDiff_(from: FolderTree, to: FolderTree) {
  * @return Input FoldTree with different nodes being marked, plus the reason why it's marked.
  *
  */
-async function markNodeDiff(a: FolderTree, b: FolderTree) {return markNodeDiff_(a, b);}
-function markNodeDiff_(a: FolderTree, b: FolderTree): {
+function markNodeDiff(a: FolderTree, b: FolderTree): {
   a: FolderTree,
   b: FolderTree,
   reason: "differentFile" | "differentFolder" | "same"
@@ -266,7 +265,7 @@ function markNodeDiff_(a: FolderTree, b: FolderTree): {
  * @param node a tree node. Normally a root.
  * @param f action perform on the node, return the new node for the rest ofthe traversal.
  */
-export async function folderTreeVisitor(node: Node, f: (node: Node) => void) {
+export function folderTreeVisitor(node: FolderTree, f: (node: Node) => void): FolderTree {
   const nodeCopy = {...node};
 
   folderTreeVisitor_(nodeCopy, f);

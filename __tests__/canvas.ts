@@ -9,7 +9,7 @@ const getTestTree = async () => {
   const courses = await getCourses("all");
   const readyFiles = await getReadyFiles(config, courses);
   const readyFolders = await getReadyFolders(readyFiles, courses);
-  const tree = await getCanvasFolderTree(config, {
+  const tree = getCanvasFolderTree(config, {
     readyFiles, readyFolders
   });
   return tree;
@@ -37,7 +37,6 @@ describe.skip("test canvas functionalities", () => {
     const result = await getReadyFolders(files, courses);
     done();
   });
-
 })
 
 
@@ -52,7 +51,7 @@ describe("test canvas folder tree", () => {
 
   it("visit canas folder tree", async done => {
     const tree = await getTestTree();
-    const tree1 = await folderTreeVisitor(tree, node => {
+    const tree1 = folderTreeVisitor(tree, node => {
       if (node._kind === "FileIdentity") {
         console.log(node.fileUrl);
         node.tag = false;
@@ -61,5 +60,4 @@ describe("test canvas folder tree", () => {
     console.log(inspect(tree1, false, null, true));
     done();
   })
-
 })

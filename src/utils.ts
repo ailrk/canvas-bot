@@ -60,3 +60,5 @@ export type Replace<T, K extends keyof T, R> = Identity<Pick<T, Exclude<keyof T,
 export function notUndefined<T>(x: T | undefined): x is T {
   return x !== undefined;
 }
+
+export type Thaw<T> = {-readonly [P in keyof T]: T[P]}
