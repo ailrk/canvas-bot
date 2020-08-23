@@ -203,19 +203,71 @@ export function folderTreeDiff(from: FolderTree, to: FolderTree) {
  * @return a new folder tree.
  */
 function buildFolderTreeFromList(trees: Node[]): FolderTree {
+  type Partition = [FolderTree[], Node[]];
   const [rootCandiates, others] =
-    trees.reduce<[FolderTree[], Node[]]>(([rootCandiates, others], v) => {
+    trees.reduce<Partition>(([rootCandiates, others], v) => {
       if (v._kind === "FolderTree" && v.parentFolder === null) {
         return [[...rootCandiates, v], others];
       }
       return [rootCandiates, [...others, v]];
 
-    }, <[FolderTree[], Node[]]>[[], []]);
+    }, [[], []]);
 
   const root = mergeRoot(<FolderTree[]>rootCandiates);
 
+  // get the top level Leaves.
+  const [topLevelFolderTrees, otherFolderTrees] = (() => {
+    if (root.path !== undefined) {
+      return [root.path, others];
+    }
+    return others.reduce<Partition>(([ls, os], v) => {
+      if (v.parentFolder!.folderName === root.folderName
+        && v._kind === "FolderTree") {
+        return [[...ls, v], os];
+      }
+      return [ls, [...os, v]];
+    }, [[], []])
 
+  })();
 
+  // @rec
+  const go = (leaves: FolderTree[], others: Node[]) => {
+    // @base case
+    if (others.length === 0) return;
+    const leavesFolderNames = leaves.map(e => e.folderName);
+
+    // add nodes leaves path and files.
+    leaves.forEach(e => {
+      const [files, path] = others.reduce<[FileIdentity[], FolderTree[]]>(
+        ([fs, ps], v) => {
+          if (v.parentFolder?.folderName === e.folderName) {
+            switch (v._kind) {
+              case "FolderTree":
+                return [fs, [...ps, v]];
+              case "FileIdentity":
+                return [[...fs, v], ps];
+            }
+          }
+          return [fs, ps];
+        }, [[], []]);
+      e.files = files;
+      e.path = path;
+    });
+
+    const [newLeaves, newOthers] = others.reduce<Partition>(
+      ([ls, os], o): Partition => {
+        if (leavesFolderNames.includes((<FolderTree>o).folderName)) {
+          return [[...ls, <FolderTree>o], os];
+        } else {
+          return [ls, [...os, o]];
+        }
+      }, [[], []]);
+
+    go(newLeaves, newOthers);
+  };
+
+  go(topLevelFolderTrees, otherFolderTrees);
+  return root;
 }
 
 /**

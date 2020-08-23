@@ -107,15 +107,15 @@ function buildFolderTree_(
       e.path = others.filter(a => a.parentFolderId === e.id_)
     });
 
-    type Partion = [typeof leaves, typeof others];
-    const [newLeaves, newOthers] = others.reduce<Partion>(
-      ([ls, os], o): Partion => {
+    type Partition = [typeof leaves, typeof others];
+    const [newLeaves, newOthers] = others.reduce<Partition>(
+      ([ls, os], o): Partition => {
         if (leavesIds.includes(o.id_)) {
           return [[...ls, o], os];
         } else {
           return [ls, [...os, o]];
         }
-      }, <Partion>[[], []]);
+      }, [[], []]);
 
     // add leaves for new leaves
     go(newLeaves, newOthers);
