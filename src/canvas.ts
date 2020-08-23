@@ -65,7 +65,8 @@ export function getCanvasFolderTree(config: Config, props: {
     });
 
   // 3. assemble top level leaves tree to the root.
-  //    Starting from the root, find all nodes that there parent nodes doesn't exist in the
+  //    Starting from the root, find all nodes that there parent nodes
+  //    doesn't exist in the
   //    `partialFolderTrees`, add them into the root's path.
   //    then recursively add sub trees follow the same procedure
 
@@ -139,7 +140,7 @@ function buildFolderTree_(
  * folder, create it.
  * @param tree a diffed tree
  */
-export async function fetchDiffTree(config: Config, tree: FolderTree) {
+export async function fetchDiffTree(tree: FolderTree) {
   type BucketElement = {
     stream: NodeJS.ReadableStream,
     filepath: string

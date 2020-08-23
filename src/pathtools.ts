@@ -18,10 +18,22 @@ import path from 'path';
 import fs from 'fs';
 import {notUndefined} from './utils';
 
+/**
+ * Guarantee a valid path name.
+ * Resolve the fullname of a path. Create a new folder if the path doesn't exist.
+ * @param p a path string.
+ * @return a Path instance that is ensured to refer to a valid directory.
+ *
+ */
 export type Path = {readonly path: string}
 export function mkPath(p: string): Path {
+  const p_ = path.resolve(p);
+  if (!fs.existsSync(p_)) {
+    fs.mkdirSync(p_);
+  }
+
   return {
-    path: path.resolve(p),
+    path: path.resolve(p_),
   };
 }
 
@@ -175,7 +187,6 @@ export function traverseDir_(folderName: Path): FolderTree {
 export function folderTreeDiff(from: FolderTree, to: FolderTree) {
   // pool with all nodes from both trees.
   let treePool: Node[] = [];
-  const root = to;
 
   folderTreeVisitor(from, node => {
     node.tag = true;
@@ -186,13 +197,11 @@ export function folderTreeDiff(from: FolderTree, to: FolderTree) {
     treePool.push(node);
   });
 
-  // get rid of two root paths.
-  treePool = treePool.filter(e => e.parentFolder !== null);
+  const folderTreePool = treePool
+    .filter((e): e is FolderTree => e._kind === "FolderTree");
 
-  const mergedTree = buildFolderTreeFromList(treePool);
-
-
-  console.log(treePool);
+  const mergedTree = mergeNodes(folderTreePool);
+  return buildFolderTreeFromList(mergedTree);
 }
 
 
@@ -205,11 +214,11 @@ export function folderTreeDiff(from: FolderTree, to: FolderTree) {
  * @param trees: A list of nodes;
  * @return a new folder tree.
  */
-function buildFolderTreeFromList(trees: Node[]): FolderTree {
-  type Partition = [FolderTree[], Node[]];
+function buildFolderTreeFromList(trees: FolderTree[]): FolderTree {
+  type Partition = [FolderTree[], FolderTree[]];
   const [rootCandiates, others] =
     trees.reduce<Partition>(([rootCandiates, others], v) => {
-      if (v._kind === "FolderTree" && v.parentFolder === null) {
+      if (v.parentFolder === null) {
         return [[...rootCandiates, v], others];
       }
       return [rootCandiates, [...others, v]];
@@ -223,43 +232,35 @@ function buildFolderTreeFromList(trees: Node[]): FolderTree {
     if (root.path !== undefined) {
       return [root.path, others];
     }
-    return others.reduce<[FolderTree[], Node[]]>(([ls, os], v) => {
-      if (v.parentFolder!.name === root.name
-        && v._kind === "FolderTree") {
+    return others.reduce<[FolderTree[], FolderTree[]]>(([ls, os], v) => {
+      if (v.parentFolder!.parentFolder === null) {
+        console.log(v.parentFolder?.name);
         return [[...ls, v], os];
       }
       return [ls, [...os, v]];
     }, [[], []])
   })();
+  root.path = topLevelFolderTrees;
+  console.log(root);
 
   // @rec
-  const go = (leaves: FolderTree[], others: Node[]) => {
+  const go = (leaves: FolderTree[], others: FolderTree[]) => {
     // @base case
     if (others.length === 0) return;
     const leavesFolderNames = leaves.map(e => e.name);
 
     // add nodes leaves path and files.
-    leaves.forEach(e => {
-      const [files, path] = others.reduce<[FileIdentity[], FolderTree[]]>(
-        ([fs, ps], v) => {
-          if (v.parentFolder?.name === e.name) {
-            switch (v._kind) {
-              case "FolderTree":
-                return [fs, [...ps, v]];
-              case "FileIdentity":
-                return [[...fs, v], ps];
-            }
-          }
-          return [fs, ps];
-        }, [[], []]);
-      e.files = files;
-      e.path = path;
+    leaves.map(e => {
+      e.path = others.reduce<FolderTree[]>((ps, v) => {
+        if (v.parentFolder?.name === e.name) {return [...ps, v]}
+        return ps
+      }, []);
     });
 
     const [newLeaves, newOthers] = others.reduce<Partition>(
       ([ls, os], o): Partition => {
-        if (leavesFolderNames.includes((<FolderTree>o).name)) {
-          return [[...ls, <FolderTree>o], os];
+        if (leavesFolderNames.includes(o.name)) {
+          return [[...ls, o], os];
         } else {
           return [ls, [...os, o]];
         }
@@ -274,10 +275,11 @@ function buildFolderTreeFromList(trees: Node[]): FolderTree {
 
 /**
  * Build a new root based on the root candidates list.
- * @returns either a merged single root or a new root with candidates as it's sub nodes.
+ * @returns either a merged single root or a new root with
+ *          candidates as it's sub nodes.
  */
 function mergeRoot(rootCandiates: FolderTree[]): FolderTree {
-  const mergedCandidates = mergeNode(rootCandiates);
+  const mergedCandidates = mergeNodes(rootCandiates);
   if (mergedCandidates.length === 1) {
     return mergedCandidates[0];
   }
@@ -300,27 +302,38 @@ function mergeRoot(rootCandiates: FolderTree[]): FolderTree {
  * If a merge happen between a marked and a unmarked node, leave the tag.
  * @return List of merged FolderTrees with no duplicated identity.
  */
-function mergeNode(treeList: FolderTree[]): FolderTree[] {
+export function mergeNodes(treeList: FolderTree[]): FolderTree[] {
 
   const uniqueFolderName = new Set(treeList
     .filter(e => e._kind === "FolderTree")
     .map(e => e.name));
 
+  const getParentFolder =
+    (treeList: FolderTree[]) => treeList.reduce<FolderTree | null>(
+      (b, a) => {
+        if (b?.name === a.parentFolder?.name) {
+          return a.parentFolder;
+        }
+        return null;
+      }, treeList[0].parentFolder);
+
+  const getTag =
+    (treeList: FolderTree[]) => treeList.reduce<boolean>((b, a) => {
+      return (a.tag ?? false) && b;
+    }, true);
+
   // everything merge into one node, their files should be shared.
   if (uniqueFolderName.size === 1) {
+
     return [<FolderTree>{
       _kind: "FolderTree",
-      parentFolder: null,
+      parentFolder: getParentFolder(treeList),
+      tag: getTag(treeList),
       files: mergeFiles(treeList),
     }]
 
-    // some needs to be merges.
+    // some need to be merged.
   } else if (uniqueFolderName.size < treeList.length) {
-
-    const root_ = <FolderTree>{
-      _kind: "FolderTree",
-      parentFolder: null,
-    };
 
     const partitioned = partitionUnique(treeList);
 
@@ -329,7 +342,8 @@ function mergeNode(treeList: FolderTree[]): FolderTree[] {
       const toBeMergedList = partitioned.get(e)!;
       return <FolderTree>{
         _kind: "FolderTree",
-        parentFolder: root_,
+        parentFolder: getParentFolder(toBeMergedList),
+        tag: getTag(toBeMergedList),
         name: e,
         files: mergeFiles(toBeMergedList),
       }
@@ -353,7 +367,8 @@ function mergeFiles(folderTreesTobeMerged: FolderTree[]) {
   // not files
   if (allFiles === undefined) return undefined;
   const partitionedMap = partitionUnique(allFiles);
-  Array.from(partitionedMap.keys()).reduce<FileIdentity[]>((list, key) => {
+
+  return Array.from(partitionedMap.keys()).reduce<FileIdentity[]>((list, key) => {
     const partition = partitionedMap.get(key)!;
     return [...list, partition.reduce<FileIdentity>((b, a) => {
       if (!a.tag || !b.tag) {

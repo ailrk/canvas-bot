@@ -53,11 +53,11 @@ describe("test canvas folder tree", () => {
     const tree = await getTestTree();
     const tree1 = folderTreeVisitor(tree, node => {
       if (node._kind === "FileIdentity") {
-        console.log(node.fileUrl);
+        // console.log(node.fileUrl);
         node.tag = false;
       }
     });
-    console.log(inspect(tree1, false, null, true));
+    // console.log(inspect(tree1, false, null, true));
     done();
   })
 })
