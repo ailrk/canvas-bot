@@ -1,6 +1,7 @@
 import {File, Course, ResponseType} from 'canvas-api-ts';
 import {Config, SpiderState} from './types';
-import {FolderTree, FileIdentity} from './pathtools';
+import {FolderTree, FileIdentity, mkParialRoot} from './pathtools';
+import {Identity} from './utils';
 
 /**
  * build up a FolderTree for ready files
@@ -10,7 +11,8 @@ import {FolderTree, FileIdentity} from './pathtools';
  * @param readyFiles List of files that we decided to download.
  * @return a FolderTree represent the logic folder structure of files in readyFiles[]
  */
-export async function getCanvasFolderTree(config: Config,
+export async function getCanvasFolderTree(
+  config: Config,
   props: {readyFiles: ResponseType.File[], readyFolders: ResponseType.Folder[]}) {
   return (getCanvasFolderTree_(config, props));
 }
@@ -18,24 +20,37 @@ function getCanvasFolderTree_(config: Config, props: {
   readyFiles: ResponseType.File[],
   readyFolders: ResponseType.Folder[],
 }): FolderTree {
+
+  // 0. define scaffolding types.
+  type TempIdMarker = {
+    parentFolderId?: number,
+    id_?: number
+  };
+
+  // temporary type of folder tree that contains id and parent folder id.
+  type TempFolderTree = Partial<Identity<
+    & Omit<FolderTree, "parentFolder" | "path">
+    & {parentFolder: TempFolderTree | null}
+    & {path?: TempFolderTree[]}
+    & TempIdMarker>>;
+
   const {readyFiles, readyFolders} = props;
 
-  // construct root
-  const root: Partial<FolderTree> = {
-    folderName: config.baseDir.path,
-    parentFolder: null,
-  }
+  // 1. construct root
+  const root = <TempFolderTree>mkParialRoot(config);
 
-  // build Partial Folder trees for all folders with their files.
-  // this is a list of all sub parital trees including root.
+  // 2. build Partial Folder trees for all folders with their files.
+  //    this is a list of all sub parital.
   const partialFolderTrees = readyFolders
     .map(folder => {
-      // add a temporary partialFolderId, this will be removed later.
-      const thisTree = <Partial<FolderTree> & {partialFolderId_? : number}>{
-        partialFolderId: folder.parent_folder_id,
+      // add a temporary partialFolderParaentId_ and id_.
+      // these will be removed once the tree is built.
+      const thisTree = <TempFolderTree>{
+        parentFolderId: folder.parent_folder_id,
         folderName: folder.name,
-        id: folder.id,
+        id_: folder.id,
       };
+
       const filesInFolder = readyFiles
         .filter(e => e.folder_id === folder.id)
         .map(e => <FileIdentity>({
@@ -44,16 +59,61 @@ function getCanvasFolderTree_(config: Config, props: {
           fileUrl: e.url,
           parentFolder: thisTree
         }));
+      thisTree.files = filesInFolder;
       return thisTree;
-    }).concat([root]);
+    });
 
-  // assemble Partial Folder trees
-  // for each node check if there is any other nodes that is waiting
+  // 3. assemble top level leaves tree to the root.
+  //    Starting from the root, find all nodes that there parent nodes doesn't exist in the
+  //    `partialFolderTrees`, add them into the root's path.
+  //    then recursively add sub trees follow the same procedure
 
+  const topLevelFolderTrees = (() => {
+    const ids = partialFolderTrees.map(b => b.id_);
+    return partialFolderTrees.filter(a => a.parentFolderId === undefined
+      || !ids.includes(a.parentFolderId))
+  })();
 
+  const otherFolderTrees = (() => {
+    const ids = topLevelFolderTrees.map(b => b.id_);
+    return partialFolderTrees.filter(a => !ids.includes(a.id_))
+  })();
 
-  return root;
+  root.path = topLevelFolderTrees;
 
+  // 4. Recursively add new node to the top level leaves.
+  // this has side effect, and it mutate root.path.
+  const recMut = (leaves: TempFolderTree[], others: typeof otherFolderTrees) => {
+    // @base case.
+    if (others.length === 0) return;
+    const leavesIds = leaves.map(e => e.id_);
+
+    // @inductive step.
+    type Partion = [typeof leaves, typeof others];
+    const [newLeaves, newOthers] = others.reduce(
+      ([ls, os]: Partion, o): Partion => {
+        if (leavesIds.includes(o.id_)) {
+          return [[...ls, o], os];
+        } else {
+          return [ls, [...os, o]];
+        }
+      }, <Partion>[[], []]);
+
+    // add new leaves to old leavs' path
+    leaves.forEach(e => {
+      e.path = others.filter(a => a.parentFolderId === e.id_)
+    });
+
+    // add leavs for new leavs
+    recMut(newLeaves, newOthers);
+  };
+
+  // 5. remove id in each nodes, add top level folder tree to root.
+  // it'stype safe because extra properties only been add into original one.
+  const unscaffold: ((a: TempFolderTree) => FolderTree) = e => <FolderTree>e;
+
+  recMut(topLevelFolderTrees, otherFolderTrees)
+  return unscaffold(root);
 }
 
 /**

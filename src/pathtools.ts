@@ -84,6 +84,13 @@ export async function getLocalFolderTree(config: Config) {
 }
 
 
+export function mkParialRoot(config: Config): Partial<FolderTree> {
+  return <Partial<FolderTree>> {
+    folderName: config.baseDir.path,
+    parentFolder: null,
+  }
+}
+
 /**
  * @param folderName path of a directory.
  * @return A folder tree represent the structure of the   directory.

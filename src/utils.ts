@@ -51,3 +51,8 @@ export function convertToBytes(memSize: string) {
   if (value === NaN) throw new Error("Error in memory unit");
   return value * factor;
 }
+
+export type Identity<T> = {[P in keyof T]: T[P]};
+export type Replace<T, K extends keyof T, R> = Identity<Pick<T, Exclude<keyof T, K>> & {
+  [P in K]: R
+}>
