@@ -26,9 +26,9 @@ import {notUndefined} from './utils';
  *
  */
 export type Path = {readonly path: string}
-export function mkPath(p: string): Path {
+export function mkPath(p: string, dontcreate?: "dontcreate"): Path {
   const p_ = path.resolve(p);
-  if (!fs.existsSync(p_)) {
+  if (!fs.existsSync(p_) && dontcreate !== "dontcreate") {
     fs.mkdirSync(p_);
   }
 

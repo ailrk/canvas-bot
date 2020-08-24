@@ -8,7 +8,7 @@ import {Identity, Thaw} from './utils';
 import fs from 'fs';
 import path from 'path';
 import {promisify} from 'util';
-
+export {User, File} from 'canvas-api-ts';
 
 // define scaffolding types.
 type TempIdMarker = {
@@ -204,6 +204,15 @@ function transformFullTreePath(tree: FolderTree) {
   })
 }
 
+export async function getTestCanvasTree(config: Config, courses: ResponseType.Course[]) {
+  const readyFiles = await getReadyFiles(config, courses);
+  const readyFolders = await getReadyFolders(readyFiles, courses);
+  const tree = getCanvasFolderTree(config, {
+    readyFiles, readyFolders
+  });
+  return tree;
+}
+
 /**
  * Show course
  * Note courses should contain "course_progress" property,
@@ -236,8 +245,16 @@ export async function getCourses(status: "completed" | "ongoing" | "all" = "all"
   return filteredCourses;
 }
 
-async function selectCourses(courses: ResponseType.Course[], ids: number[]) {
-  return courses.filter(e => ids.includes(e.id));
+export function filterCourses(config: Config, courses: ResponseType.Course[]) {
+  const mask = (list: string[]) => (e: ResponseType.Course) =>
+    list.includes(e.id.toString())
+    || list.includes(e.name)
+    || list.includes(e.course_code);
+  const courseWList = config.courseWhilteList;
+  const courseBList = config.courseBlackList;
+  const preserved = courses.filter(mask(courseWList));
+  const b = courses.filter(e => !mask(courseBList)(e));
+  return preserved.concat(b);
 }
 
 /**

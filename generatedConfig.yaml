@@ -1,0 +1,16 @@
+baseDir:
+    path: /home/jimmy/newDisk/Repo/canvas-spider/canvasDownload
+update: newFileOnly
+verbosity: verbose
+maxFileSize: Infinity
+maxTotalSize: Infinity
+snapshotDir:
+    path: /home/jimmy/newDisk/Repo/canvas-spider/.snapshot
+allowVideo: false
+allowLink: false
+courseWhilteList: []
+courseBlackList: []
+fileBlackList: []
+fileWhiteList: []
+fileExtensionBlackList: []
+fileExtensionWhiteList: []

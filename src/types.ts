@@ -19,6 +19,14 @@ export interface Auth {
   url: string,
 };
 
+export function isConfigUpdate(v?: string): v is ConfigBuilder["update"] {
+  return ["newFileOnly", "overwride"].includes(v ?? "");
+}
+
+export function isConfigVerbosity(v?: string): v is ConfigBuilder["verbosity"] {
+  return ["mute" , "verbose" , "vverbose"].includes(v ?? "");
+}
+
 
 /*
  * ConfigBuilder is only used to represent the yaml file, and it allows partial
@@ -63,6 +71,13 @@ export interface ConfigBuilder {
 
   // enable to allow download link
   allowLink?: boolean,
+
+  // can be course name, course code or id listed by course command.
+  courseWhilteList?: string[],
+
+  // can be course name, course code or id listed by course command.
+  courseBlackList?: string[],
+
 
   // file name in this list will not be downloaded.
   fileBlackList?: string[],

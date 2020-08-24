@@ -30,6 +30,10 @@ export function mkDefaultConfig(): ConfigBuilder {
 
     allowLink: false,
 
+    courseWhilteList: [],
+
+    courseBlackList: [],
+
     fileBlackList: [],
 
     fileWhiteList: [],
