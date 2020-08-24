@@ -1,6 +1,6 @@
 {
   "name": "canvas-spider",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "automate stuffs on canvas",
   "main": "dist/index.js",
   "type": "dist/index.d.ts",
