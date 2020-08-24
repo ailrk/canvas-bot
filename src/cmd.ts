@@ -24,6 +24,7 @@ export async function quotaCommandHandler() {
     chalk.blue(format(quota.quota / (1024 * 1024))), "MB");
   console.log("  Canvas Storage space used:  ",
     chalk.blue(format(quota.quota_used / (1024 * 1024))), "MB");
+  process.exit();
 }
 
 export async function yamlGenerateHandler(args: Partial<{
@@ -62,6 +63,7 @@ export async function yamlGenerateHandler(args: Partial<{
   };
   await promisify(fs.writeFile)
     ("./generatedConfig.yaml", yamljs.stringify(config));
+  process.exit();
 
 }
 
@@ -90,6 +92,7 @@ export async function courseCommandHandler(args: {
     }
   })
   console.log();
+  process.exit();
 }
 
 export async function userCommandHandler() {
@@ -102,34 +105,47 @@ export async function userCommandHandler() {
       console.log(`      | ${v[0]}: `, chalk.blue(v[1]));
     }
   })
+  process.exit();
 }
 
 export async function downloadCommandHandler(args: {
   yaml: string,
 }) {
   const config = await (async () => {
-    const c1 = await Con.loadConfig(P.mkPath(args.yaml))
-    return healthCheck(c1);
+    const c1 = await Con.loadConfig(P.mkPath(args.yaml, "dontcreate"))
+    return await healthCheck(c1);
   })();
 
+  console.log("checking canvas courses information...");
   const allCourses = await Canvas.getCourses();
   const courses = Canvas.filterCourses(config, allCourses);
 
+  console.log("checking canvas course folders...");
   const readyFiles = await Canvas.getReadyFiles(config, courses);
   const readyFolders = await Canvas.getReadyFolders(readyFiles, courses);
 
-  const canvasTree = Canvas.getCanvasFolderTree(config, {
-    readyFiles, readyFolders
-  });
-
-  if (config.update === "newFileOnly") {
+  const tree = await (async () => {
     const canvasTree = Canvas.getCanvasFolderTree(config, {
       readyFiles, readyFolders
     });
-    const localTree = await P.getLocalFolderTree(config);
-    const diffTree = P.folderTreeDiff(canvasTree, localTree);
-    await Canvas.fetchDiffTree(diffTree);
-  } else {
-    await Canvas.fetchDiffTree(canvasTree);
-  }
+    if (config.update === "newFileOnly") {
+      console.log("newFileOnly mode, ")
+      console.log("checking difference between canvas folder and local files...");
+      const canvasTree = Canvas.getCanvasFolderTree(config, {
+        readyFiles, readyFolders
+      });
+      const localTree = await P.getLocalFolderTree(config);
+      const diffTree = P.folderTreeDiff(canvasTree, localTree);
+      return diffTree;
+    } else {
+      console.log("overwrite mode, ");
+      console.log("old files will be deleted");
+      return canvasTree;
+    }
+  })();
+
+  console.log("downloading...");
+  await Canvas.fetchDiffTree(tree);
+  console.log("finished");
+  process.exit();
 }

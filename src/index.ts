@@ -2,6 +2,7 @@ import yargs from 'yargs';
 import chalk from 'chalk';
 import * as Cmd from './cmd';
 
+
 export const logo = ""
   + "                                                         _            \n"
   + "                                                  (_)   | |           \n"
@@ -14,6 +15,7 @@ export const logo = ""
 
 
 const cmdArgs = yargs
+
   .command('template', 'generate yaml template', (yargs) => {
     yargs.options({
       base: {
@@ -29,6 +31,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         "file-limit": {
           alias: "f",
@@ -36,6 +39,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         "file-wlist": {
           alias: "w",
@@ -44,6 +48,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         "file-blist": {
           alias: "b",
@@ -51,6 +56,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         "file-ext-wlist": {
           alias: "e",
@@ -58,6 +64,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         "file-ext-blist": {
           alias: "z",
@@ -65,6 +72,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         "update-method": {
           alias: "u",
@@ -72,6 +80,7 @@ const cmdArgs = yargs
           type: "string"
         }
       })
+
       .options({
         verbosity: {
           alias: "v",
@@ -79,7 +88,6 @@ const cmdArgs = yargs
           type: "string"
         }
       })
-      .showHelpOnFail(true)
 
   }, Cmd.yamlGenerateHandler)
   .command('courses', 'show all courses', (yargs) => {
@@ -93,20 +101,20 @@ const cmdArgs = yargs
       })
       .alias('h', 'help')
   }, Cmd.courseCommandHandler)
+
   .command("user", 'show user info', Cmd.userCommandHandler)
+
   .command("quota", "show storage quota on canvas", Cmd.quotaCommandHandler)
-  .command(chalk.yellow("download [yaml]"),
-    "download files with given yaml config", (yargs) => {
+
+  .command("download [yaml]",
+    chalk.blue("download files with given yaml config"), (yargs) => {
       yargs.positional('yaml', {
         alias: 'f',
         describe: `${chalk.yellow("yaml config file")}`,
         default: "main.yaml",
       })
-        .alias('h', "help")
-        .demandOption("yaml")
-        .showHelpOnFail(true)
-        .help()
     }, Cmd.downloadCommandHandler)
+
   .usage(chalk.yellow(logo))
   .help()
   .version("current version: 0.1.1")
@@ -115,5 +123,4 @@ const cmdArgs = yargs
   .describe('v', 'show version information')
   .epilog("more information from https://github.com/ailrk/canvas-spider")
   .showHelpOnFail(false, "whoops, something wrong. run with --help")
-  .demandCommand()
   .argv;

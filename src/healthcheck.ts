@@ -38,6 +38,7 @@ export async function healthCheck(config: Config) {
   const check6 = await checkLinkSupport(check5);
   const end = check6;
   if (await configConfirm(end)) {
+    console.log(chalk.blue("config confirmed..."));
     return end;
   }
   console.log(chalk.yellow("aborting..."));
@@ -58,7 +59,7 @@ async function yesno(query: string) {
   let answer = "";
   do {
     answer = await question(chalk.blue(query));
-  } while (["y", "n"].includes(answer));
+  } while (!["y", "n"].includes(answer));
   return answer === "y";
 }
 
@@ -73,7 +74,7 @@ async function checkBaseDir(config: Config) {
     if (dirList.length === 0) {
       console.log(`Base dir ${baseDirPath} already exists.`)
       switch (upateMode) {
-        case "overwride":
+        case "overwrite":
           console.log(""
             + "It's in overwrite mode, "
             + " file with the same name will be overwritten");
@@ -96,7 +97,11 @@ async function checkBaseDir(config: Config) {
     console.log(""
       + chalk.blue(`base dir ${baseDirPath} doesn't exist.`
         + ` creating a new one ...`));
-    await mkdir(baseDirPath);
+    try {
+      await mkdir(baseDirPath);
+    } catch (_) {
+
+    }
   }
   return config;
 }
@@ -137,18 +142,15 @@ async function checkFileSizeConstraint(config: Config) {
  */
 async function checkDiskUsage(config: Config) {
   const {baseDir, maxTotalSize} = config;
-  const {free, size} = await checkDiskSpace(path.resolve(baseDir.path));
-  if (size < maxTotalSize) {
-    throw new Error(""
-      + `The maxTotalSize ${maxTotalSize / (1024 * 1024)}mb is larger than`
-      + ` the disk size ${size / (1024 * 1024)}mb, `
-      + "It's impossible to download this much!");
-  }
-  if (free < maxTotalSize) {
-    throw new Error(""
-      + `Available disk space ${free / 1024 * 1024}is smaller than maxTotalSize. `
+  const {free} = await checkDiskSpace(path.resolve(baseDir.path));
+  if (free < maxTotalSize && maxTotalSize !== Infinity) {
+    console.log(chalk.red(""
+      + `The maxTotalSize ${maxTotalSize / (1024 * 1024)}MB is larger than`
+      + ` the free disk size ${free / (1024 * 1024)}MB, `
+      + "It's impossible to download this much!")
       + "You can either free some space on the disk or"
       + " use a smaller value for maxTotalSize.");
+    process.exit();
   }
   return config;
 }

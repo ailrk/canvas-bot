@@ -20,7 +20,7 @@ export interface Auth {
 };
 
 export function isConfigUpdate(v?: string): v is ConfigBuilder["update"] {
-  return ["newFileOnly", "overwride"].includes(v ?? "");
+  return ["newFileOnly", "overwirte"].includes(v ?? "");
 }
 
 export function isConfigVerbosity(v?: string): v is ConfigBuilder["verbosity"] {
@@ -49,7 +49,7 @@ export interface ConfigBuilder {
   // only download files that is not in current foler.
   | "newFileOnly"
   // allow overwirte
-  | "overwride"
+  | "overwrite"
 
   // set verbosity of logging.
   verbosity: "mute" | "verbose" | "vverbose",

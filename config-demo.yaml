@@ -37,7 +37,7 @@ allowLink: false
 # specify stragegy for updating.
 # | "newFileOnly"  only download files that is not in current foler.
 # | "overwride"    allow overwirte
-update: newFileOnly
+update: overwirte
 
 # specify the verbosity of logging.
 # Three level: mute | verbose | vverbose

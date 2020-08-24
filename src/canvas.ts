@@ -9,6 +9,7 @@ import fs from 'fs';
 import path from 'path';
 import {promisify} from 'util';
 export {User, File} from 'canvas-api-ts';
+import chalk from 'chalk';
 
 // define scaffolding types.
 type TempIdMarker = {
@@ -164,6 +165,7 @@ export async function fetchDiffTree(tree: FolderTree) {
 
             const promise = new Promise<BucketElement>(async resolve => {
               const {stream} = await File.fetchFileByUrl(url);
+              console.log(chalk.blue(`getting file ${node.name} ...`))
               resolve({stream: stream, filepath: node.name});
             });
             bucket.push(promise);
@@ -171,6 +173,7 @@ export async function fetchDiffTree(tree: FolderTree) {
 
           break
         case "FolderTree":
+          console.log(chalk.blue(`making folder ${node.name} ...`))
           await (promisify(fs.mkdir))(path.resolve(node.name));
           break
       }
@@ -204,14 +207,7 @@ function transformFullTreePath(tree: FolderTree) {
   })
 }
 
-export async function getTestCanvasTree(config: Config, courses: ResponseType.Course[]) {
-  const readyFiles = await getReadyFiles(config, courses);
-  const readyFolders = await getReadyFolders(readyFiles, courses);
-  const tree = getCanvasFolderTree(config, {
-    readyFiles, readyFolders
-  });
-  return tree;
-}
+
 
 /**
  * Show course
