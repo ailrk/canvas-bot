@@ -52,8 +52,8 @@ export async function loadConfig(p: Path): Promise<Config> {
   const config = {
     ...mkDefaultConfig(),
     ...yaml,
-    maxFileSize: convertToBytes(maxFileSize ?? "Infinity"),
-    maxTotalSize: convertToBytes(maxTotalSize ?? "Infinity"),
+    maxFileSize: convertToBytes(maxFileSize ?? Infinity),
+    maxTotalSize: convertToBytes(maxTotalSize ?? Infinity),
   };
 
   if (authenticated(config)) {

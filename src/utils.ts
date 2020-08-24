@@ -32,24 +32,31 @@ export function once<T>(fn: ((...args: any[]) => T) | null, ...args: any[]) {
   }
 }
 
-export function convertToBytes(memSize: string) {
-  const processed = memSize.trim().toLowerCase();
-  const [valueString, unit] = [processed.slice(0, -2), processed.slice(-2)]
-  const factor = (() => {
-    switch (unit) {
-      case "kb":
-        return 1024;
-      case "mb":
-        return 1024 * 1024;
-      case "gb":
-        return 1024 * 1024 * 1024;
-      default:
-        throw new Error(`invalid memory unit ${unit}`);
-    }
-  })();
-  const value = Number(valueString);
-  if (value === NaN) throw new Error("Error in memory unit");
-  return value * factor;
+/**
+ * @param memSize either be a string  with unit or number with bytes as default
+ */
+export function convertToBytes(memSize: string | number) {
+  if (typeof memSize === "string") {
+    const processed = memSize.trim().toLowerCase()
+    const valueString = processed.slice(0, -2);
+    const unit = processed.slice(-2);
+    const factor = (() => {
+      switch (unit) {
+        case "kb":
+          return 1024;
+        case "mb":
+          return 1024 * 1024;
+        case "gb":
+          return 1024 * 1024 * 1024;
+        default:
+          throw new Error(`invalid memory unit ${unit}`);
+      }
+    })();
+    const value = Number(valueString);
+    if (value === NaN) throw new Error("Error in memory unit");
+    return value * factor;
+  }
+  return memSize;
 }
 
 export type Identity<T> = {[P in keyof T]: T[P]};
