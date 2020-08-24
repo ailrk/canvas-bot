@@ -1,10 +1,11 @@
+// check if environment of the current config is sufficient.
+
 import chalk from 'chalk';
 import {Config} from './types';
 import yamljs from 'yamljs';
 import readline from 'readline';
 import checkDiskSpace from 'check-disk-space';
 import path from 'path';
-import {convertToBytes} from './utils';
 import fs from 'fs';
 import {promisify} from 'util';
 
@@ -141,8 +142,7 @@ async function checkDiskUsage(config: Config) {
     throw new Error(""
       + `The maxTotalSize ${maxTotalSize / (1024 * 1024)}mb is larger than`
       + ` the disk size ${size / (1024 * 1024)}mb, `
-      + "It's impossible to download this much!"
-    )
+      + "It's impossible to download this much!");
   }
   if (free < maxTotalSize) {
     throw new Error(""

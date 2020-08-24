@@ -16,21 +16,21 @@ const getTestTree = async () => {
 }
 
 
-describe.skip("test canvas functionalities", () => {
-  it("test get courses", async done => {
+describe("test canvas functionalities", () => {
+  it.only("test get courses", async done => {
     const courses = await getCourses("all");
-    // console.log(courses);
+    console.log(courses);
     done();
   });
 
-  it("ready files", async done => {
+  it.skip("ready files", async done => {
     const config = await loadConfig({path: "config-demo.yaml"});
     const courses = await getCourses("all");
     const result = await getReadyFiles(config, courses);
     done();
   });
 
-  it("ready files", async done => {
+  it.skip("ready files", async done => {
     const config = await loadConfig({path: "config-demo.yaml"});
     const courses = await getCourses("all");
     const files = await getReadyFiles(config, courses);
@@ -40,7 +40,7 @@ describe.skip("test canvas functionalities", () => {
 })
 
 
-describe("test canvas folder tree", () => {
+describe.skip("test canvas folder tree", () => {
   it.skip("get folder tree", async done => {
     const tree = await getTestTree();
 

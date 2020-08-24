@@ -18,7 +18,6 @@ import path from 'path';
 import fs from 'fs';
 import {notUndefined} from './utils';
 
-import {inspect} from 'util';
 /**
  * Guarantee a valid path name.
  * Resolve the fullname of a path. Create a new folder if the path doesn't exist.
@@ -329,12 +328,14 @@ export function mergeNodes(treeList: FolderTree[]): FolderTree[] {
   // everything merge into one node, their files should be shared.
   if (uniqueFolderName.size === 1) {
 
-    return [<FolderTree>{
-      _kind: "FolderTree",
-      parentFolder: getParentFolder(treeList),
-      tag: getTag(treeList),
-      files: mergeFiles(treeList),
-    }]
+    return [
+      <FolderTree>{
+        _kind: "FolderTree",
+        parentFolder: getParentFolder(treeList),
+        tag: getTag(treeList),
+        files: mergeFiles(treeList),
+      }
+    ]
 
     // some need to be merged.
   } else if (uniqueFolderName.size < treeList.length) {
@@ -366,9 +367,9 @@ export function mergeNodes(treeList: FolderTree[]): FolderTree[] {
  * if there are duplicated files, remove the tag.
  */
 function mergeFiles(folderTreesTobeMerged: FolderTree[]) {
-  const allFiles = (<FolderTree["files"]>[])?.concat(
-    ...folderTreesTobeMerged.map(e => e.files)
-      .filter(notUndefined));
+  const allFiles = (<FolderTree["files"]>[])?.concat(...folderTreesTobeMerged
+    .map(e => e.files)
+    .filter(notUndefined));
   // not files
   if (allFiles === undefined) return undefined;
   const partitionedMap = partitionUnique(allFiles);
@@ -431,7 +432,7 @@ function folderTreeVisitorUnset_(node: Node) {
   node.unset = true;
   if (node._kind === "FolderTree") {
     const go = (e: Node) => {
-  if (!e.unset) {
+      if (!e.unset) {
         folderTreeVisitorUnset_(e);
       }
     };
@@ -441,9 +442,9 @@ function folderTreeVisitorUnset_(node: Node) {
 }
 export function folderTreeVisitor_(node: Node, f: (node: Node) => any) {
   // mutate the node
+  f(node);
 
   // the visited field need to be unset to be traversed multiple times.
-  f(node);
   node.visited = true;
   node.unset = undefined;
 

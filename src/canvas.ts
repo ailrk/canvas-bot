@@ -1,3 +1,6 @@
+// Implements functions useful for talking with canvas.
+// Also build the canvas folder tree.
+
 import {File, Course, ResponseType} from 'canvas-api-ts';
 import {Config, SpiderState} from './types';
 import {FolderTree, FileIdentity, mkParialRoot, folderTreeVisitor} from './pathtools';
@@ -139,7 +142,6 @@ function buildFolderTree_(
   return unscaffold(root);
 }
 
-
 /**
  * Download tagged file in the diff tree, or if it's a tagged
  * folder, create it.
@@ -174,7 +176,6 @@ export async function fetchDiffTree(tree: FolderTree) {
       }
     }
   });
-
 
   const streams = await Promise.all(bucket);
   streams.forEach(async ({stream, filepath}) => {
@@ -218,7 +219,7 @@ export async function getCourses(status: "completed" | "ongoing" | "all" = "all"
     include: ["course_progress"]
   });
 
-  return courses.filter(e => {
+  const filteredCourses = courses.filter(e => {
     const a = e.course_progress?.requirement_count;
     const b = e.course_progress?.requirement_completed_count;
     if (!(a && b)) {
@@ -232,6 +233,7 @@ export async function getCourses(status: "completed" | "ongoing" | "all" = "all"
     }
     return true;
   });
+  return filteredCourses;
 }
 
 async function selectCourses(courses: ResponseType.Course[], ids: number[]) {
