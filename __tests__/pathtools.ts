@@ -1,5 +1,6 @@
 import {loadConfig} from '../src/config';
 import {mkPath, getLocalFolderTree, folderTreeVisitor, Node, FileIdentity, folderTreeDiff, FolderTree, mergeNodes} from '../src/pathtools';
+import {Thaw} from '../src/utils';
 import {inspect} from 'util';
 
 describe.skip("Basic modules check", () => {
@@ -27,7 +28,7 @@ describe("Tree test", () => {
     expect(typeof tree.name === "string").toBe(true);
   })
 
-  it("Tree", async done => {
+  it.only("Tree visitor", async done => {
     const config = await loadConfig({path: "config-demo.yaml"});
     const tree = await getLocalFolderTree({
       ...config,
@@ -36,12 +37,15 @@ describe("Tree test", () => {
 
     const tree1 = folderTreeVisitor(tree, (a: Node) => {
       if (a._kind === "FolderTree") {
-        a.tag = false;
+        (<Thaw<typeof a>>a).name = "Get Changed";
       }
+      a.tag = true;
     })
 
     // console.log(tree === tree1);
     // console.log(inspect(tree1, false, 3, true));
+    expect(tree1.name === "Get Changed");
+    expect(tree1.files[0].tag).toBe(true);
     expect(tree1.visited).toBe(true);
     expect(tree === tree1).toBe(false);
 
@@ -49,7 +53,7 @@ describe("Tree test", () => {
   });
 
 
-  it.skip("TreeMerge", () => {
+  it("TreeMerge", () => {
     const tree1 = <FolderTree>{
       _kind: "FolderTree",
       name: "A",
@@ -116,14 +120,14 @@ describe("Tree test", () => {
     tree2a.path = [...tree2a.path ?? [], tree2e];
 
     merged = mergeNodes([tree1, tree1a, tree2, tree2a, tree2d, tree2e]);
-    console.log(inspect(merged, false, 2, true));
+    // console.log(inspect(merged, false, 2, true));
     expect(merged.length === 4).toBe(true);
     expect(new Set(merged.map(e => e.name)).size === 4).toBe(true);
   });
 
 
 
-  it("tree diff", async done => {
+  it.skip("tree diff", async done => {
     const config = await loadConfig({path: "config-demo.yaml"});
     const tree1 = await getLocalFolderTree({
       ...config,
@@ -134,8 +138,15 @@ describe("Tree test", () => {
       baseDir: mkPath("./node_modules/escalade"),
     });
 
+    tree2.path = [...tree2.path ?? [], <FolderTree>{
+      _kind: "FolderTree",
+      name: "ADDED!",
+      parentFolder: tree2,
+      tag: true,
+    }];
+
     const diff = folderTreeDiff(tree1, tree2);
-    console.log(inspect(diff, false, 3, true));
+    // console.log(inspect(diff, false, 3, true));
 
 
     done();

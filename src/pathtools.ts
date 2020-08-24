@@ -18,6 +18,7 @@ import path from 'path';
 import fs from 'fs';
 import {notUndefined} from './utils';
 
+import {inspect} from 'util';
 /**
  * Guarantee a valid path name.
  * Resolve the fullname of a path. Create a new folder if the path doesn't exist.
@@ -41,6 +42,9 @@ interface Tagged {
   tag?: boolean;
 
   visited?: true;
+
+  // allow multiple bfs traverse.
+  unset?: true;
 }
 
 export interface FileIdentity extends Tagged {
@@ -104,7 +108,6 @@ export async function getLocalFolderTree(config: Config) {
 
 
 export function mkParialRoot(config: Config): Partial<FolderTree> {
-  console.log(config);
   return <Partial<FolderTree>>{
     _kind: "FolderTree",
     name: config.baseDir.path,
@@ -144,6 +147,7 @@ export function traverseDir_(folderName: Path): FolderTree {
       parentFolder: null,
     };
     thisTree.files = files.map(e => <FileIdentity>{
+      _kind: "FileIdentity",
       name: e,
       parentFolder: thisTree,
     });
@@ -188,12 +192,12 @@ export function folderTreeDiff(from: FolderTree, to: FolderTree) {
   // pool with all nodes from both trees.
   let treePool: Node[] = [];
 
-  folderTreeVisitor(from, node => {
+  folderTreeVisitorMutate(from, node => {
     node.tag = true;
     treePool.push(node);
   });
 
-  folderTreeVisitor(to, node => {
+  folderTreeVisitorMutate(to, node => {
     treePool.push(node);
   });
 
@@ -234,14 +238,12 @@ function buildFolderTreeFromList(trees: FolderTree[]): FolderTree {
     }
     return others.reduce<[FolderTree[], FolderTree[]]>(([ls, os], v) => {
       if (v.parentFolder!.parentFolder === null) {
-        console.log(v.parentFolder?.name);
         return [[...ls, v], os];
       }
       return [ls, [...os, v]];
     }, [[], []])
   })();
   root.path = topLevelFolderTrees;
-  console.log(root);
 
   // @rec
   const go = (leaves: FolderTree[], others: FolderTree[]) => {
@@ -252,7 +254,9 @@ function buildFolderTreeFromList(trees: FolderTree[]): FolderTree {
     // add nodes leaves path and files.
     leaves.map(e => {
       e.path = others.reduce<FolderTree[]>((ps, v) => {
-        if (v.parentFolder?.name === e.name) {return [...ps, v]}
+        if (v.parentFolder?.name === e.name) {
+          return [...ps, v]
+        }
         return ps
       }, []);
     });
@@ -356,6 +360,7 @@ export function mergeNodes(treeList: FolderTree[]): FolderTree[] {
   return treeList;
 }
 
+
 /**
  * merge files of FolderTrees with the same identity.
  * if there are duplicated files, remove the tag.
@@ -405,26 +410,51 @@ function partitionUnique<T extends {name: string}>(list: T[]) {
  * @param node a tree node. Normally a root.
  * @param f action perform on the node, return the new node for the rest ofthe traversal.
  */
-export function folderTreeVisitor(node: FolderTree, f: (node: Node) => void): FolderTree {
+export function folderTreeVisitor(node: FolderTree, f: (node: Node) => any): FolderTree {
   const nodeCopy = {...node};
 
-  folderTreeVisitor_(nodeCopy, f);
+  folderTreeVisitorMutate(nodeCopy, f);
   return nodeCopy;
 }
-export function folderTreeVisitor_(
-  node: Node,
-  f: (node: Node) => void) {
-  // mutate the node
-  f(node);
 
+/**
+ * The underlying implementation of folderTreeVisitor. This will mutate the tree passed
+ * in rather than create a copy of the tree.
+ */
+
+export function folderTreeVisitorMutate(node: Node, f: (node: Node) => any) {
+  folderTreeVisitor_(node, f);
+  folderTreeVisitorUnset_(node);
+}
+function folderTreeVisitorUnset_(node: Node) {
+  node.visited = undefined;
+  node.unset = true;
+  if (node._kind === "FolderTree") {
+    const go = (e: Node) => {
+  if (!e.unset) {
+        folderTreeVisitorUnset_(e);
+      }
+    };
+    node.path?.forEach(go);
+    node.files?.forEach(go);
+  }
+}
+export function folderTreeVisitor_(node: Node, f: (node: Node) => any) {
+  // mutate the node
+
+  // the visited field need to be unset to be traversed multiple times.
+  f(node);
   node.visited = true;
+  node.unset = undefined;
 
   if (node._kind === "FolderTree") {
-    const edges = [...node.path ?? [], ...node.files ?? []];
-    edges.forEach(e => {
+    const go = (e: Node) => {
       if (!e.visited) {
         folderTreeVisitor_(e, f);
       }
-    })
+    };
+
+    node.path?.forEach(go);
+    node.files?.forEach(go);
   }
 }

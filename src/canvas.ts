@@ -75,17 +75,16 @@ export function getCanvasFolderTree(config: Config, props: {
     return partialFolderTrees.filter(a => a.parentFolderId === undefined
       || !ids.includes(a.parentFolderId))
   })();
-
-  const otherFolderTrees = (() => {
-    const ids = topLevelFolderTrees.map(b => b.id_);
-    return partialFolderTrees.filter(a => !ids.includes(a.id_))
-  })();
-
   // circularly refer to each other.
   root.path = topLevelFolderTrees;
   topLevelFolderTrees.forEach(e => {
     e.parentFolder = root;
   })
+
+  const otherFolderTrees = (() => {
+    const ids = topLevelFolderTrees.map(b => b.id_);
+    return partialFolderTrees.filter(a => !ids.includes(a.id_))
+  })();
 
   // 4. Recursively add new node to the top level leaves.
   // this has side effect, and it mutate root.path.
@@ -109,7 +108,13 @@ function buildFolderTree_(
     // @inductive step.
     // add new leaves to old leaves' path
     leaves.forEach(e => {
-      e.path = others.filter(a => a.parentFolderId === e.id_)
+      const newLeaves = others.filter(a => a.parentFolderId === e.id_);
+      newLeaves.forEach(a => {
+
+        // link the sub folder's to it's parent.
+        a.parentFolder = e
+      })
+      e.path = newLeaves;
     });
 
     type Partition = [typeof leaves, typeof others];

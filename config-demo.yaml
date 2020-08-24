@@ -1,7 +1,7 @@
 # directory to stored downloaded files
 # if you comment this line files will be download in the
 # current directory.
-baseDir: .
+baseDir: ./testDir
 
 # canvas authentication information
 # This is mandatory.
