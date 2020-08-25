@@ -13,7 +13,7 @@ import {fnv1a} from './utils';
 // only field `authentication` doesn't have a default value.
 export function mkDefaultConfig(): ConfigBuilder {
   return {
-    baseDir: mkPath('.'),
+    baseDir: mkPath('.', 'dontcreate'),
 
     update: "newFileOnly",
 

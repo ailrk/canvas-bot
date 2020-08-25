@@ -14,13 +14,16 @@ import {Config, isConfigUpdate, isConfigVerbosity} from './types';
 
 type HandlerCallback = (config: Config, args?: any) => Promise<void>;
 
-const commandHandlerFactory = (f: HandlerCallback, confirm?: "confirm") => {
+const commandHandlerFactory = (f: HandlerCallback, options?: Parameters<typeof healthCheck>[1]) => {
   return async (args?: any) => {
     const config = await (async () => {
       const
         p = P.mkPath(args.yaml ?? "main.yaml", "dontcreate"),
         c1 = await Con.loadConfig(p);
-      return await healthCheck(c1, confirm);
+      return await healthCheck(c1, options ?? {
+        confirm: false,
+        skipBasedir: false
+      });
     })();
 
     await f(config, args);
@@ -179,4 +182,7 @@ export const downloadCommandHandler = commandHandlerFactory(
     await Canvas.fetchDiffTree(tree);
     console.log("finished");
   },
-  "confirm");
+  {
+    confirm: true,
+    skipBasedir: false,
+  });

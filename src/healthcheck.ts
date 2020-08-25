@@ -29,9 +29,13 @@ const mkdir = promisify(fs.mkdir);
  * @param config a non parital config
  * @return a checked non partial config that is ready to use.
  */
-export async function healthCheck(config: Config, confirm?: "confirm") {
+export async function healthCheck(config: Config, options: {
+  confirm: boolean,
+  skipBasedir: boolean,
+}) {
   const
-    check1 = await checkBaseDir(config),
+    {confirm, skipBasedir} = options,
+    check1 = skipBasedir ? await checkBaseDir(config) : config,
     check2 = await checkSnapshot(check1),
     check3 = await checkDiskUsage(check2),
     check4 = await checkFileSizeConstraint(check3),
@@ -39,7 +43,7 @@ export async function healthCheck(config: Config, confirm?: "confirm") {
     check6 = await checkLinkSupport(check5),
     end = check6;
 
-  if (confirm === "confirm") {
+  if (confirm) {
     console.log(chalk.blue("config confirmed..."));
     if (!await configConfirm(end)) {
       console.log(chalk.yellow("aborting..."));
@@ -74,6 +78,7 @@ async function checkBaseDir(config: Config) {
   const
     baseDirPath = config.baseDir.path,
     upateMode = config.update;
+
   try {
     const dirList = await readdir(baseDirPath, {encoding: 'utf8'});
     if (dirList.length === 0) {
