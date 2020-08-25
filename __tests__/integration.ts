@@ -7,7 +7,7 @@ import fs from 'fs';
 import {promisify} from 'util';
 
 const getTestCanvasTree = async (config: Config) => {
-  const courses = await getCourses("all");
+  const courses = await getCourses();
   const readyFiles = await getReadyFiles(config, courses);
   const readyFolders = await getReadyFolders(readyFiles, courses);
   const tree = getCanvasFolderTree(config, {
@@ -27,7 +27,7 @@ describe("integrate canvas and pathtools", () => {
   it("collect tree into list", async done => {
     const bucket = [];
 
-    const config = await loadConfig({path: "config-demo.yaml"});
+    const config = await loadConfig({path: "main.yaml"});
     const canvasTree = await getTestCanvasTree(config);
 
     folderTreeVisitorMutate(canvasTree, node => {
@@ -42,7 +42,7 @@ describe("integrate canvas and pathtools", () => {
   });
 
   it.skip("build diff tree between canvas tree and local tree", async done => {
-    const config = await loadConfig({path: "config-demo.yaml"});
+    const config = await loadConfig({path: "main.yaml"});
     const canvasTree = await getTestCanvasTree(config);
     const tree = await getLocalFolderTree(config);
     const diff = folderTreeDiff(canvasTree, tree);
@@ -54,13 +54,13 @@ describe("integrate canvas and pathtools", () => {
   });
 
   it.skip("local tree for not existed folder", async done => {
-    const config = await loadConfig({path: "config-demo.yaml"});
+    const config = await loadConfig({path: "main.yaml"});
     const tree = await getLocalFolderTree(config);
     done();
   })
 
   it.only("fetch diff tree", async done => {
-    const config = await loadConfig({path: "config-demo.yaml"});
+    const config = await loadConfig({path: "main.yaml"});
     const canvasTree = await getTestCanvasTree(config);
     const tree = await getLocalFolderTree(config);
     const diff = folderTreeDiff(canvasTree, tree);

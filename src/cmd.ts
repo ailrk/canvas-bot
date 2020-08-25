@@ -1,4 +1,4 @@
-// Toolbox provides a nicer interface to assemble lower level functions.
+// Provides a nicer interface to assemble lower level functions.
 
 import * as Canvas from './canvas';
 import * as Con from './config';
@@ -12,7 +12,6 @@ import yamljs from 'yamljs';
 import {convertToBytes} from './utils';
 import {Config, isConfigUpdate, isConfigVerbosity} from './types';
 
-
 type HandlerCallback = (config: Config, args?: any) => Promise<void>;
 
 const commandHandlerFactory = (f: HandlerCallback, confirm?: "confirm") => {
@@ -24,7 +23,8 @@ const commandHandlerFactory = (f: HandlerCallback, confirm?: "confirm") => {
       return await healthCheck(c1, confirm);
     })();
 
-    f(config, args);
+    await f(config, args);
+    process.stdin.pause();
   }
 }
 
@@ -41,7 +41,6 @@ export const quotaCommandHandler = commandHandlerFactory(async () => {
     chalk.blue(format(quota.quota / (1024 * 1024))), "MB");
   console.log("  Canvas Storage space used:  ",
     chalk.blue(format(quota.quota_used / (1024 * 1024))), "MB");
-  process.exit();
 });
 
 
@@ -88,7 +87,6 @@ export async function yamlGenerateHandler(args: Partial<{
     + "You need to fill the authentication field in the yaml file. "
     + "More information please check "
     + chalk.yellow("https://github.com/ailrk/canvas-bot/blob/master/config-demo.yaml")));
-  process.exit();
 }
 
 
@@ -119,7 +117,6 @@ export const courseCommandHandler =
       }
     })
     console.log();
-    process.exit();
   });
 
 
@@ -136,7 +133,6 @@ export const userCommandHandler = commandHandlerFactory(
         console.log(`      | ${v[0]}: `, chalk.blue(v[1]));
       }
     })
-    process.exit();
   });
 
 
@@ -182,6 +178,5 @@ export const downloadCommandHandler = commandHandlerFactory(
     console.log("downloading...");
     await Canvas.fetchDiffTree(tree);
     console.log("finished");
-    process.exit();
   },
   "confirm");

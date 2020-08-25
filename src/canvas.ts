@@ -3,13 +3,14 @@
 
 import {File, Course, ResponseType} from 'canvas-api-ts';
 import {Config, SpiderState} from './types';
-import {FolderTree, FileIdentity, mkParialRoot, folderTreeVisitor} from './pathtools';
+import {FolderTree, FileIdentity, mkParialRoot, folderTreeVisitor, Node} from './pathtools';
 import {Identity, Thaw} from './utils';
 import fs from 'fs';
 import path from 'path';
 import {promisify} from 'util';
 export {User, File} from 'canvas-api-ts';
 import chalk from 'chalk';
+import {notUndefined, Replace} from './utils';
 
 // define scaffolding types.
 type TempIdMarker = {
@@ -62,7 +63,7 @@ export function getCanvasFolderTree(config: Config, props: {
             _kind: "FileIdentity",
             id: e.id,
             name: e.filename,
-            fileUrl: e.url,
+            file: e,
             parentFolder: thisTree
           }));
 
@@ -151,32 +152,18 @@ function buildFolderTree_(
  * @param tree a diffed tree
  */
 export async function fetchDiffTree(tree: FolderTree) {
-  type BucketElement = {
-    stream: NodeJS.ReadableStream,
-    filepath: string
-  };
-  const bucket: Promise<BucketElement>[] = [];
+  type NodeWithUrl = Replace<FileIdentity, 'file', ResponseType.File>;
+  const bucket: NodeWithUrl[] = [];
 
   folderTreeVisitor(tree, async node => {
     if (node.tag) {
 
       switch (node._kind) {
         case "FileIdentity":
-          const url = node.fileUrl;
+          const url = node.file?.url;
           if (url !== undefined) {
-
-            const promise = new Promise<BucketElement>(async resolve => {
-              try {
-                const {stream} = await File.fetchFileByUrl(url);
-                console.log(chalk.blue(`getting file ${node.name} ...`));
-                resolve({stream: stream, filepath: node.name});
-              } catch (err) {
-                console.error(chalk.red(`Unable to fetch from ${url}...`));
-              }
-            });
-            bucket.push(promise);
+            bucket.push(<NodeWithUrl>node);
           }
-
           break
         case "FolderTree":
           console.log(chalk.blue(`making folder ${node.name} ...`))
@@ -185,9 +172,26 @@ export async function fetchDiffTree(tree: FolderTree) {
       }
     }
   });
+  const
+    promises = bucket.map(async e => {
+      const filesize = (e.file.size / 1024)
+        .toString()
+        .match(/\d+\.\d{2}/)?.[0] ?? "unknown";
 
-  const streams = await Promise.all(bucket);
-  streams.forEach(async ({stream, filepath}) => {
+      console.log(chalk.blue(`getting file ${e.file.filename}`));
+      console.log(chalk.yellow(`  > from url:   ${e.file.url}`));
+      console.log(chalk.yellow(`  > file size:  ${filesize} MB`));
+      console.log(chalk.yellow(`  > file type:  ${e.file.mime_class}`));
+      console.log(chalk.yellow(`  > created at: ${e.file.created_at}`));
+      console.log(chalk.yellow(`  > is locked?: ${e.file.locked}`));
+
+      const stream = await File.fetchFileByUrl(e.file.url);
+      return {stream: stream.stream, file: e.file, filepath: e.name};
+    }),
+    results = await Promise.all(promises);
+
+  results.forEach(async ({stream, file, filepath}) => {
+    console.log(chalk.blue(`storing file ${file.filename} to ${filepath}...`))
     await File.storeByPath(filepath, stream);
   })
 }
@@ -222,32 +226,12 @@ function transformFullTreePath(tree: FolderTree) {
  * @param status what types of courses get returned.
  * @return list of courses
  */
-export async function getCourses(status: "completed" | "ongoing" | "all" = "all"
-) {
+export async function getCourses() {
   const courses = await Course.getCoursesByUser("self", {
     enrollment_state: "active",
-    include: ["course_progress"]
   });
 
-  const filteredCourses = courses.filter(e => {
-    const
-      a = e.course_progress?.requirement_count,
-      b = e.course_progress?.requirement_completed_count;
-
-    if (!(a && b)) {
-      return true;
-    }
-
-    const completed = (a / b) < 1;
-    if (status === "completed") {
-      return completed;
-
-    } else if (status === "ongoing") {
-      return !completed;
-    }
-    return true;
-  });
-  return filteredCourses;
+  return courses;
 }
 
 export function filterCourses(config: Config, courses: ResponseType.Course[]) {

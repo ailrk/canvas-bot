@@ -17,6 +17,7 @@ import {Config} from './types';
 import path from 'path';
 import fs from 'fs';
 import {notUndefined} from './utils';
+import {ResponseType} from 'canvas-api-ts';
 
 /**
  * Guarantee a valid path name.
@@ -58,7 +59,9 @@ export interface FileIdentity extends Tagged {
 
   // folder tree build from local files will not have this field.
   // tree build form canvas api or stored in snapshot.
-  readonly fileUrl?: string,
+
+  // the entire File object fetched from canvas
+  readonly file?: ResponseType.File,
 
   // all files have a parent
   parentFolder: FolderTree,
