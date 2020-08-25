@@ -49,4 +49,6 @@ sketh
 .env
 testDir/
 local.yaml
+.snapshot
+
 # End of https://www.toptal.com/developers/gitignore/api/reactc
