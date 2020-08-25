@@ -65,6 +65,7 @@ describe("integrate canvas and pathtools", () => {
     const tree = await getLocalFolderTree(config);
     const diff = folderTreeDiff(canvasTree, tree);
     await fetchDiffTree(diff);
+
     done();
   });
 });

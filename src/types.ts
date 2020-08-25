@@ -111,14 +111,14 @@ export interface SpiderState {
   readonly config: Config,
 
   // list of new files arrived
-  newFilesBuffer: [FileBuffer],
+  newFiles: [string],
 
   // list of updated files
-  updatedFilesBuffer: [FileBuffer],
+  updatedFiles: [string],
 
   // current files
-  currentFiles: [FileIdentity],
+  currentFiles: [string],
 
   // failed files
-  failedFiles: [FileIdentity],
+  failedFiles: [string],
 }

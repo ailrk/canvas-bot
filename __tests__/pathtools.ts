@@ -46,7 +46,7 @@ describe("Tree test", () => {
     // console.log(inspect(tree1, false, 3, true));
     expect(tree1.name === "Get Changed");
     expect(tree1.files[0].tag).toBe(true);
-    expect(tree1.visited).toBe(true);
+    expect(tree1.visited).toBe(false);
     expect(tree === tree1).toBe(false);
 
     done();

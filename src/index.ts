@@ -1,3 +1,5 @@
+#! node
+
 import yargs from 'yargs';
 import chalk from 'chalk';
 import * as Cmd from './cmd';
@@ -15,7 +17,7 @@ export const logo = ""
 
 
 const cmdArgs = yargs
-
+  .strict()
   .command('template', 'generate yaml template', (yargs) => {
     yargs.options({
       base: {
@@ -99,7 +101,7 @@ const cmdArgs = yargs
           type: "boolean",
         }
       })
-      .alias('h', 'help')
+
   }, Cmd.courseCommandHandler)
 
   .command("user", 'show user info', Cmd.userCommandHandler)
@@ -120,7 +122,12 @@ const cmdArgs = yargs
   .version("current version: 0.1.0")
   .alias('help', 'h')
   .alias('version', 'v')
-  .describe('v', 'show version information')
   .epilog("more information from https://github.com/ailrk/canvas-spider")
   .showHelpOnFail(false, "whoops, something wrong. run with --help")
   .argv;
+
+
+if (!cmdArgs._[0]) {
+  yargs.showHelp();
+  process.exit(0);
+}

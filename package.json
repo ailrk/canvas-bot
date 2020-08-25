@@ -19,6 +19,9 @@
   },
   "author": "Ailrk",
   "license": "MIT",
+  "bin": {
+    "canvasSpider": "./dist/index.js"
+  },
   "moduleFileExtensions": [
     "ts"
   ],
