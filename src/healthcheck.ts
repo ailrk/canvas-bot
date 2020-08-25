@@ -29,7 +29,7 @@ const mkdir = promisify(fs.mkdir);
  * @param config a non parital config
  * @return a checked non partial config that is ready to use.
  */
-export async function healthCheck(config: Config) {
+export async function healthCheck(config: Config, confirm?: "confirm") {
   const
     check1 = await checkBaseDir(config),
     check2 = await checkSnapshot(check1),
@@ -38,12 +38,15 @@ export async function healthCheck(config: Config) {
     check5 = await checkVideoSupport(check4),
     check6 = await checkLinkSupport(check5),
     end = check6;
-  if (await configConfirm(end)) {
+
+  if (confirm === "confirm") {
     console.log(chalk.blue("config confirmed..."));
-    return end;
+    if (!await configConfirm(end)) {
+      console.log(chalk.yellow("aborting..."));
+      process.exit(0);
+    }
   }
-  console.log(chalk.yellow("aborting..."));
-  process.exit(0);
+  return end;
 }
 
 

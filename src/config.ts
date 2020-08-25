@@ -6,6 +6,8 @@ import path from 'path';
 import {promisify} from 'util';
 import {convertToBytes} from './utils';
 import chalk from 'chalk';
+import dotenv from 'dotenv';
+import {fnv1a} from './utils';
 
 // smart constructor for default config.
 // only field `authentication` doesn't have a default value.
@@ -44,9 +46,44 @@ export function mkDefaultConfig(): ConfigBuilder {
   }
 }
 
+
+export async function createDotEnv(auth: Auth) {
+  if (await promisify(fs.exists)(".env")) {
+    type EnvType = {
+      CANVAS_API_TOKEN: string,
+      CANVAS_API_URL: string
+    };
+    const
+      oldEnvBuff = await promisify(fs.readFile)(".env"),
+      oldEnv: EnvType = dotenv.parse(oldEnvBuff) as unknown as EnvType;
+
+    if (oldEnv.CANVAS_API_TOKEN === auth.key && oldEnv.CANVAS_API_URL === auth.url) {
+      return;
+    }
+
+    try {
+      await promisify(fs.writeFile)
+        ('old-env' + fnv1a(new Date().toString()) + '.env', oldEnvBuff);
+    } catch (_) {
+      console.log(".env file existed")
+      process.exit();
+    }
+  }
+
+  const newEnv = ""
+    + `CANVAS_API_TOKEN=${auth.key}\n`
+    + `CANVAS_API_URL=${auth.url}`;
+
+  // create new dot env based on the auth
+  await promisify(fs.writeFile)
+    (".env", newEnv);
+}
+
+
 function authenticated<T extends {authentication?: Auth}, U extends T & {authentication: Auth}>(a: T): a is U {
   return a.authentication !== undefined;
 }
+
 
 export async function loadConfig(p: Path): Promise<Config> {
   const yaml = await readYaml(p);
@@ -61,13 +98,16 @@ export async function loadConfig(p: Path): Promise<Config> {
   };
 
   if (authenticated(config)) {
+    await createDotEnv(config.authentication);
     return config as Config;
   }
 
-  throw new Error(""
+  console.error(""
     + chalk.red("Load file error, ")
     + "No authentication information");
+  process.exit();
 }
+
 
 async function readYaml(p: Path) {
   const readFile = promisify(fs.readFile);

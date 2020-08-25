@@ -46,9 +46,12 @@ psd
 thumb
 sketh
 
+
+*.env
 .env
 testDir/
 local.yaml
+main.yaml
 .snapshot
 
 # End of https://www.toptal.com/developers/gitignore/api/reactc
