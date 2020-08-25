@@ -128,18 +128,19 @@ export function mkParialRoot(config: Config): Partial<FolderTree> {
 async function traverseDir(folderName: Path): Promise<FolderTree> {return traverseDir_(folderName);}
 export function traverseDir_(folderName: Path): FolderTree {
 
-  const path = folderName.path;
+  const
+    path = folderName.path,
 
-  // all names under the folder (all full paths)
-  const names = fs.readdirSync(path).map(e => `${path}/${e}`);
+    // all names under the folder (all full paths)
+    names = fs.readdirSync(path).map(e => `${path}/${e}`),
 
-  const folders: string[] = names
-    .filter(e => {
-      return fs.lstatSync(e).isDirectory();
-    });
+    folders: string[] = names
+      .filter(e => {
+        return fs.lstatSync(e).isDirectory();
+      }),
 
-  const files: string[] = names
-    .filter(e => fs.lstatSync(e).isFile());
+    files: string[] = names
+      .filter(e => fs.lstatSync(e).isFile());
 
   // @base case. no folder any more
   if (folders.length === 0) {
@@ -229,22 +230,23 @@ function buildFolderTreeFromList(trees: FolderTree[]): FolderTree {
       }
       return [rootCandiates, [...others, v]];
 
-    }, [[], []]);
+    }, [[], []]),
 
-  const root = mergeRoot(<FolderTree[]>rootCandiates);
+    root = mergeRoot(<FolderTree[]>rootCandiates),
 
-  // get the top level Leaves.
-  const [topLevelFolderTrees, otherFolderTrees] = <Partition>(() => {
-    if (root.path !== undefined) {
-      return [root.path, others];
-    }
-    return others.reduce<[FolderTree[], FolderTree[]]>(([ls, os], v) => {
-      if (v.parentFolder!.parentFolder === null) {
-        return [[...ls, v], os];
+    // get the top level Leaves.
+    [topLevelFolderTrees, otherFolderTrees] = <Partition>(() => {
+      if (root.path !== undefined) {
+        return [root.path, others];
       }
-      return [ls, [...os, v]];
-    }, [[], []])
-  })();
+      return others.reduce<[FolderTree[], FolderTree[]]>(([ls, os], v) => {
+        if (v.parentFolder!.parentFolder === null) {
+          return [[...ls, v], os];
+        }
+        return [ls, [...os, v]];
+      }, [[], []])
+    })();
+
   root.path = topLevelFolderTrees;
 
   // @rec
@@ -254,7 +256,7 @@ function buildFolderTreeFromList(trees: FolderTree[]): FolderTree {
     const leavesFolderNames = leaves.map(e => e.name);
 
     // add nodes leaves path and files.
-    leaves.map(e => {
+    leaves.forEach(e => {
       e.path = others.reduce<FolderTree[]>((ps, v) => {
         if (v.parentFolder?.name === e.name) {
           return [...ps, v]
@@ -312,21 +314,21 @@ export function mergeNodes(treeList: FolderTree[]): FolderTree[] {
 
   const uniqueFolderName = new Set(treeList
     .filter(e => e._kind === "FolderTree")
-    .map(e => e.name));
+    .map(e => e.name)),
 
-  const getParentFolder =
-    (treeList: FolderTree[]) => treeList.reduce<FolderTree | null>(
-      (b, a) => {
-        if (b?.name === a.parentFolder?.name) {
-          return a.parentFolder;
-        }
-        return null;
-      }, treeList[0].parentFolder);
+    getParentFolder =
+      (treeList: FolderTree[]) => treeList.reduce<FolderTree | null>(
+        (b, a) => {
+          if (b?.name === a.parentFolder?.name) {
+            return a.parentFolder;
+          }
+          return null;
+        }, treeList[0].parentFolder),
 
-  const getTag =
-    (treeList: FolderTree[]) => treeList.reduce<boolean>((b, a) => {
-      return (a.tag ?? false) && b;
-    }, true);
+    getTag =
+      (treeList: FolderTree[]) => treeList.reduce<boolean>((b, a) => {
+        return (a.tag ?? false) && b;
+      }, true);
 
   // everything merge into one node, their files should be shared.
   if (uniqueFolderName.size === 1) {
@@ -343,19 +345,20 @@ export function mergeNodes(treeList: FolderTree[]): FolderTree[] {
     // some need to be merged.
   } else if (uniqueFolderName.size < treeList.length) {
 
-    const partitioned = partitionUnique(treeList);
+    const
+      partitioned = partitionUnique(treeList),
 
-    // one subtree each uniqueName.
-    const path = Array.from(uniqueFolderName).map(e => {
-      const toBeMergedList = partitioned.get(e)!;
-      return <FolderTree>{
-        _kind: "FolderTree",
-        parentFolder: getParentFolder(toBeMergedList),
-        tag: getTag(toBeMergedList),
-        name: e,
-        files: mergeFiles(toBeMergedList),
-      }
-    });
+      // one subtree each uniqueName.
+      path = Array.from(uniqueFolderName).map(e => {
+        const toBeMergedList = partitioned.get(e)!;
+        return <FolderTree>{
+          _kind: "FolderTree",
+          parentFolder: getParentFolder(toBeMergedList),
+          tag: getTag(toBeMergedList),
+          name: e,
+          files: mergeFiles(toBeMergedList),
+        }
+      });
 
     return path;
   }
@@ -374,6 +377,7 @@ function mergeFiles(folderTreesTobeMerged: FolderTree[]) {
     .map(e => e.files)
     .filter(notUndefined));
   // not files
+  //
   if (allFiles === undefined) return undefined;
   const partitionedMap = partitionUnique(allFiles);
 
@@ -395,15 +399,16 @@ function mergeFiles(folderTreesTobeMerged: FolderTree[]) {
  * Partition elements with the same name into one list.
  */
 function partitionUnique<T extends {name: string}>(list: T[]) {
-  const uniqueNames = new Set(list.map(e => e.name));
-  const partitionedMap = list.reduce((b, a) => {
-    b.get(a.name)?.push(a);
-    return b;
-  }, (() => {
-    const map = new Map<string, T[]>();
-    uniqueNames.forEach(e => {map.set(e, []);});
-    return map;
-  })());
+  const
+    uniqueNames = new Set(list.map(e => e.name)),
+    partitionedMap = list.reduce((b, a) => {
+      b.get(a.name)?.push(a);
+      return b;
+    }, (() => {
+      const map = new Map<string, T[]>();
+      uniqueNames.forEach(e => {map.set(e, []);});
+      return map;
+    })());
 
   return partitionedMap;
 }

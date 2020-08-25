@@ -117,7 +117,7 @@ const cmdArgs = yargs
 
   .usage(chalk.yellow(logo))
   .help()
-  .version("current version: 0.1.1")
+  .version("current version: 0.1.0")
   .alias('help', 'h')
   .alias('version', 'v')
   .describe('v', 'show version information')

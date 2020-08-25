@@ -3,6 +3,7 @@
 import * as Canvas from './canvas';
 import * as Con from './config';
 import * as P from './pathtools';
+import * as SnapShot from './snapshot';
 import {healthCheck} from './healthcheck';
 import chalk from 'chalk';
 import fs from 'fs';
@@ -70,15 +71,16 @@ export async function yamlGenerateHandler(args: Partial<{
 export async function courseCommandHandler(args: {
   all?: boolean,
 }) {
-  const courses = await Canvas.getCourses();
-  const summariedCourses = courses.map((e, i) => ({
-    name: e.name,
-    id: i,
-    courseCode: e.course_code,
-    startAt: e.start_at.split('T')[0],
-    endAt: e.end_at.split('T')[0],
-    progres: e.course_progress
-  }));
+  const
+    courses = await Canvas.getCourses(),
+    summariedCourses = courses.map((e, i) => ({
+      name: e.name,
+      id: i,
+      courseCode: e.course_code,
+      startAt: e.start_at.split('T')[0],
+      endAt: e.end_at.split('T')[0],
+      progres: e.course_progress
+    }));
 
   console.log();
   console.log("Course List:");
@@ -96,9 +98,11 @@ export async function courseCommandHandler(args: {
 }
 
 export async function userCommandHandler() {
-  const user = await Canvas.User.getSelf();
-  const profile = await Canvas.User.getUserProfile(user);
-  const combined = {...user, ...profile};
+  const
+    user = await Canvas.User.getSelf(),
+    profile = await Canvas.User.getUserProfile(user),
+    combined = {...user, ...profile};
+
   console.log("* User: ", chalk.blue(combined.name));
   Object.entries(combined).forEach(v => {
     if (typeof v[1] !== "object") {
@@ -117,32 +121,41 @@ export async function downloadCommandHandler(args: {
   })();
 
   console.log("checking canvas courses information...");
-  const allCourses = await Canvas.getCourses();
-  const courses = Canvas.filterCourses(config, allCourses);
+  const
+    allCourses = await Canvas.getCourses(),
+    courses = Canvas.filterCourses(config, allCourses);
 
   console.log("checking canvas course folders...");
-  const readyFiles = await Canvas.getReadyFiles(config, courses);
-  const readyFolders = await Canvas.getReadyFolders(readyFiles, courses);
+  const
+    readyFiles = await Canvas.getReadyFiles(config, courses),
+    readyFolders = await Canvas.getReadyFolders(readyFiles, courses),
 
-  const tree = await (async () => {
-    const canvasTree = Canvas.getCanvasFolderTree(config, {
-      readyFiles, readyFolders
-    });
-    if (config.update === "newFileOnly") {
-      console.log("newFileOnly mode, ")
-      console.log("checking difference between canvas folder and local files...");
+    tree = await (async () => {
       const canvasTree = Canvas.getCanvasFolderTree(config, {
         readyFiles, readyFolders
       });
-      const localTree = await P.getLocalFolderTree(config);
-      const diffTree = P.folderTreeDiff(canvasTree, localTree);
-      return diffTree;
-    } else {
-      console.log("overwrite mode, ");
-      console.log("old files will be deleted");
-      return canvasTree;
-    }
-  })();
+
+      if (config.update === "newFileOnly") {
+        console.log("newFileOnly mode, ")
+        console.log("checking difference between canvas and local files...");
+        const
+          canvasTree = Canvas.getCanvasFolderTree(config, {
+            readyFiles, readyFolders
+          }),
+          localTree = await P.getLocalFolderTree(config),
+          diffTree = P.folderTreeDiff(canvasTree, localTree);
+
+        return diffTree;
+      } else {
+        console.log("overwrite mode, ");
+        console.log("old files will be deleted");
+        return canvasTree;
+      }
+    })();
+
+  // snapshot
+  console.log("writing snapshot..")
+  await SnapShot.writeSnapShot(config, tree);
 
   console.log("downloading...");
   await Canvas.fetchDiffTree(tree);

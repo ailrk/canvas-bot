@@ -48,22 +48,24 @@ export function getCanvasFolderTree(config: Config, props: {
     .map(folder => {
       // add a temporary partialFolderParaentId_ and id_.
       // these will be removed once the tree is built.
-      const thisTree = <TempFolderTree>{
-        _kind: "FolderTree",
-        parentFolderId: folder.parent_folder_id,
-        name: folder.name,
-        id_: folder.id,
-      };
+      const
+        thisTree = <TempFolderTree>{
+          _kind: "FolderTree",
+          parentFolderId: folder.parent_folder_id,
+          name: folder.name,
+          id_: folder.id,
+        },
 
-      const filesInFolder = readyFiles
-        .filter(e => e.folder_id === folder.id)
-        .map(e => <FileIdentity>({
-          _kind: "FileIdentity",
-          id: e.id,
-          name: e.filename,
-          fileUrl: e.url,
-          parentFolder: thisTree
-        }));
+        filesInFolder = readyFiles
+          .filter(e => e.folder_id === folder.id)
+          .map(e => <FileIdentity>({
+            _kind: "FileIdentity",
+            id: e.id,
+            name: e.filename,
+            fileUrl: e.url,
+            parentFolder: thisTree
+          }));
+
       thisTree.files = filesInFolder;
       return thisTree;
     });
@@ -164,9 +166,13 @@ export async function fetchDiffTree(tree: FolderTree) {
           if (url !== undefined) {
 
             const promise = new Promise<BucketElement>(async resolve => {
-              const {stream} = await File.fetchFileByUrl(url);
-              console.log(chalk.blue(`getting file ${node.name} ...`))
-              resolve({stream: stream, filepath: node.name});
+              try {
+                const {stream} = await File.fetchFileByUrl(url);
+                console.log(chalk.blue(`getting file ${node.name} ...`));
+                resolve({stream: stream, filepath: node.name});
+              } catch (err) {
+                console.error(chalk.red(`Unable to fetch from ${url}...`));
+              }
             });
             bucket.push(promise);
           }
@@ -194,10 +200,9 @@ function transformFullTreePath(tree: FolderTree) {
   return folderTreeVisitor(tree, node => {
     if (node._kind === "FolderTree") {
       const parentFolderName = node.parentFolder?.name;
+
       (node as Thaw<typeof node>).name =
-        parentFolderName ?
-          `${parentFolderName}/${node.name}` :
-          node.name;
+        parentFolderName ? `${parentFolderName}/${node.name}` : node.name;
     }
 
     if (node._kind === "FileIdentity") {
@@ -225,14 +230,18 @@ export async function getCourses(status: "completed" | "ongoing" | "all" = "all"
   });
 
   const filteredCourses = courses.filter(e => {
-    const a = e.course_progress?.requirement_count;
-    const b = e.course_progress?.requirement_completed_count;
+    const
+      a = e.course_progress?.requirement_count,
+      b = e.course_progress?.requirement_completed_count;
+
     if (!(a && b)) {
       return true;
     }
+
     const completed = (a / b) < 1;
     if (status === "completed") {
       return completed;
+
     } else if (status === "ongoing") {
       return !completed;
     }
@@ -246,10 +255,12 @@ export function filterCourses(config: Config, courses: ResponseType.Course[]) {
     list.includes(e.id.toString())
     || list.includes(e.name)
     || list.includes(e.course_code);
-  const courseWList = config.courseWhilteList;
-  const courseBList = config.courseBlackList;
-  const preserved = courses.filter(mask(courseWList));
-  const b = courses.filter(e => !mask(courseBList)(e));
+
+  const
+    courseWList = config.courseWhilteList,
+    courseBList = config.courseBlackList,
+    preserved = courses.filter(mask(courseWList)),
+    b = courses.filter(e => !mask(courseBList)(e));
   return preserved.concat(b);
 }
 
@@ -261,8 +272,10 @@ export function filterCourses(config: Config, courses: ResponseType.Course[]) {
  */
 
 export async function getReadyFiles(config: Config, courses: ResponseType.Course[]) {
-  const nestedfile = await Promise.all(courses.map(e => File.getCourseFiles(e.id, {})));
-  const files = ([] as ResponseType.File[]).concat(...nestedfile);
+  const
+    promises = courses.map(e => File.getCourseFiles(e.id, {})),
+    nestedfile = await Promise.all(promises),
+    files = ([] as ResponseType.File[]).concat(...nestedfile);
 
   return fileFilter(config, files);
 }
@@ -273,9 +286,11 @@ export async function getReadyFiles(config: Config, courses: ResponseType.Course
  * File.getCourseFolders will also list all the sub folders.
  */
 export async function getReadyFolders(files: ResponseType.File[], courses: ResponseType.Course[]) {
-  const nestedfolders = await Promise.all(courses.map(e => File.getCourseFolders(e.id)));
-  const folders = ([] as ResponseType.Folder[]).concat(...nestedfolders);
-  const readyFileFolderIds = files.map(e => e.folder_id);
+  const
+    promises = courses.map(e => File.getCourseFolders(e.id)),
+    nestedfolders = await Promise.all(promises),
+    folders = ([] as ResponseType.Folder[]).concat(...nestedfolders),
+    readyFileFolderIds = files.map(e => e.folder_id);
   return folders.filter(e => readyFileFolderIds.includes(e.id));
 }
 
@@ -287,20 +302,23 @@ export async function getReadyFolders(files: ResponseType.File[], courses: Respo
  *         config file
  */
 function fileFilter(config: Config, files: ResponseType.File[]) {
-  const filenameMap = new Map(files.map(e => [e.filename, e]));
-  const preservedWhiteList = (() => {
-    const wl: ResponseType.File[] = [];
-    // perserve white list.
-    for (const w of config.fileWhiteList) {
-      if (filenameMap.has(w)) {
-        const file = filenameMap.get(w);
-        if (file === undefined) continue;
-        wl.push(file);
-        filenameMap.delete(w);
+  const
+    filenameMap = new Map(files.map(e => [e.filename, e])),
+    preservedWhiteList = (() => {
+      const wl: ResponseType.File[] = [];
+
+      // perserve white list.
+      for (const w of config.fileWhiteList) {
+
+        if (filenameMap.has(w)) {
+          const file = filenameMap.get(w);
+          if (file === undefined) continue;
+          wl.push(file);
+          filenameMap.delete(w);
+        }
       }
-    }
-    return wl;
-  })();
+      return wl;
+    })();
 
 
   // filter blacklist
@@ -313,10 +331,10 @@ function fileFilter(config: Config, files: ResponseType.File[]) {
   // filter extension and combine preserved white list.
   return files.filter(
     e => {
-      const extension = e.mime_class;
-
-      const inBlackList = config.fileExtensionBlackList.includes(extension);
-      const inWhiteList = config.fileExtensionWhiteList.includes(extension);
+      const
+        extension = e.mime_class,
+        inBlackList = config.fileExtensionBlackList.includes(extension),
+        inWhiteList = config.fileExtensionWhiteList.includes(extension);
 
       return inWhiteList || !inBlackList;
     }).concat(preservedWhiteList);

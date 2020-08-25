@@ -30,13 +30,14 @@ const mkdir = promisify(fs.mkdir);
  * @return a checked non partial config that is ready to use.
  */
 export async function healthCheck(config: Config) {
-  const check1 = await checkBaseDir(config);
-  const check2 = await checkSnapshot(check1);
-  const check3 = await checkDiskUsage(check2);
-  const check4 = await checkFileSizeConstraint(check3);
-  const check5 = await checkVideoSupport(check4);
-  const check6 = await checkLinkSupport(check5);
-  const end = check6;
+  const
+    check1 = await checkBaseDir(config),
+    check2 = await checkSnapshot(check1),
+    check3 = await checkDiskUsage(check2),
+    check4 = await checkFileSizeConstraint(check3),
+    check5 = await checkVideoSupport(check4),
+    check6 = await checkLinkSupport(check5),
+    end = check6;
   if (await configConfirm(end)) {
     console.log(chalk.blue("config confirmed..."));
     return end;
@@ -51,8 +52,8 @@ export async function healthCheck(config: Config) {
  */
 async function configConfirm(config: Config) {
   const finalYamlConfig = yamljs.stringify(config);
-  console.log(finalYamlConfig);
-  return await yesno(chalk.blue("Is the config looks good? [y/n]"));
+  console.log(chalk.yellow(finalYamlConfig));
+  return await yesno(chalk.blue("Does the config looks good to you? [y/n]"));
 }
 
 async function yesno(query: string) {
@@ -67,21 +68,25 @@ async function yesno(query: string) {
  * Create base directory if it doesn't exist, check update mode.
  */
 async function checkBaseDir(config: Config) {
-  const baseDirPath = config.baseDir.path;
-  const upateMode = config.update;
+  const
+    baseDirPath = config.baseDir.path,
+    upateMode = config.update;
   try {
     const dirList = await readdir(baseDirPath, {encoding: 'utf8'});
     if (dirList.length === 0) {
       console.log(`Base dir ${baseDirPath} already exists.`)
       switch (upateMode) {
+
         case "overwrite":
           console.log(""
             + "It's in overwrite mode, "
             + " file with the same name will be overwritten");
+
         case "newFileOnly":
           console.log(""
             + "It's in newFileOnly mode, "
             + "new file will not overwrite existed files with the same name");
+
         default:
           throw new Error(`${chalk.red("unknown update mode")} ${upateMode}...`);
       }
@@ -92,6 +97,7 @@ async function checkBaseDir(config: Config) {
         + `Base dir ${baseDirPath} is empty,`
         + " new file will be download...");
     }
+
   } catch (err) {
     // directory doesn't exist
     console.log(""
@@ -116,7 +122,6 @@ async function checkSnapshot(config: Config) {
 }
 
 async function checkFileSizeConstraint(config: Config) {
-  const baseDirPath = config.baseDir.path;
   const {maxFileSize, maxTotalSize} = config;
 
   if (maxFileSize >= maxTotalSize) {
@@ -141,8 +146,9 @@ async function checkFileSizeConstraint(config: Config) {
  * Check if disk space is enough for maximum possible download.
  */
 async function checkDiskUsage(config: Config) {
-  const {baseDir, maxTotalSize} = config;
-  const {free} = await checkDiskSpace(path.resolve(baseDir.path));
+  const
+    {baseDir, maxTotalSize} = config,
+    {free} = await checkDiskSpace(path.resolve(baseDir.path));
   if (free < maxTotalSize && maxTotalSize !== Infinity) {
     console.log(chalk.red(""
       + `The maxTotalSize ${maxTotalSize / (1024 * 1024)}MB is larger than`

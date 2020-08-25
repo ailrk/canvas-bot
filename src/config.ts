@@ -71,7 +71,13 @@ export async function loadConfig(p: Path): Promise<Config> {
 
 async function readYaml(p: Path) {
   const readFile = promisify(fs.readFile);
-  const file = (await readFile(path.resolve(p.path))).toString();
+  let file: string = "";
+  try {
+    file = (await readFile(path.resolve(p.path))).toString();
+  } catch (err) {
+    console.error(chalk.red(`yaml file ${p.path} doesn't exist`));
+    process.exit(0);
+  }
 
   const parsed = parse(file) as any;
   parsed.baseDir = mkPath(parsed.baseDir);
