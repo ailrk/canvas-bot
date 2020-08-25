@@ -28,7 +28,6 @@ const commandHandlerFactory = (f: HandlerCallback, confirm?: "confirm") => {
   }
 }
 
-
 export const quotaCommandHandler = commandHandlerFactory(async () => {
 
   const quota = await Canvas.File.getQuota();

@@ -4,27 +4,72 @@ import omlette from 'omelette';
 import yargs from 'yargs';
 import chalk from 'chalk';
 import * as Cmd from './cmd';
+import fs from 'fs';
 
 
-export const logo = ""
-  + "                                                         _            \n"
-  + "                                                  (_)   | |           \n"
-  + "     ___ __ _ _ ____   ____ _ ___ ______ ___ _ __  _  __| | ___ _ __  \n"
-  + "    / __/ _` | '_ \\ \\ / / _` / __|______/ __| '_ \\| |/ _` |/ _ \\ '__| \n"
-  + "   | (_| (_| | | | \\ V / (_| \\__ \\      \\__ \\ |_) | | (_| |  __/ |    \n"
-  + "    \\___\\__,_|_| |_|\\_/ \\__,_|___/      |___/ .__/|_|\\__,_|\\___|_|    \n"
-  + "                                            | |                       \n"
-  + "                                            |_|                       \n";
+const logo = ""
+  + "                                      _           _     \n "
+  + "                                     | |         | |    \n "
+  + "  ___ __ _ _ ____   ____ _ ___ ______| |__   ___ | |_   \n "
+  + " / __/ _` | '_ \\ \\ / / _` / __|______| '_ \\ / _ \\| __|  \n "
+  + "| (_| (_| | | | \\ V / (_| \\__ \\      | |_) | (_) | |_    \n "
+  + " \\___\\__,_|_| |_|\\_/ \\__,_|___/      |_.__/ \\___/ \\__|  \n "
+  + "";
+
+const completion = omlette("canvasBot");
 
 
-const completion = omlette("canvasBot <command>");
-
+completion.tree({
+  // @ts-ignore
+  template: ["--base", "--limit", "--file-limit", "--file-wlist",
+    "--file-blist", "--file-ext-wlist", "--file-ext-blist", "--update-method"],
+  courses: ["--all"],
+  user: [""],
+  quota: [""],
+  // @ts-ignore
+  download() {
+    const yamls = fs.readdirSync('.').filter(e => e.split('.')[2] === 'yaml');
+    if (yamls.length === 0) {
+      return ["main.yaml"];
+    }
+    else {
+      return yamls;
+    }
+  },
+}).init();
 
 completion.on('command',
   ({reply}) =>
-    reply(['template', 'user', 'courses', 'download', 'quota']));
+    reply(['template', 'user', 'courses', 'download', 'quota', 'autocomplete']));
 
 completion.init();
+
+
+function autoCompleteHandler(args: {
+  onoff: 'on' | 'off',
+  shellConfigPath?: string,
+}) {
+  function enableAutoComplete() {
+    try {
+      completion.setupShellInitFile(args.shellConfigPath);
+    } catch (err) {}
+  }
+
+  function cleanAutoCompleteHandler() {
+    try {
+      completion.cleanupShellInitFile();
+    } catch (err) {}
+  }
+
+  if (args.onoff === 'on') {
+    enableAutoComplete();
+  } else if (args.onoff === 'off') {
+    cleanAutoCompleteHandler();
+  } else {
+    console.error(chalk.red("the value should be either on or off"));
+  }
+  process.exit();
+}
 
 
 const cmdArgs = yargs
@@ -128,6 +173,21 @@ const cmdArgs = yargs
       })
     }, Cmd.downloadCommandHandler)
 
+  .command("autocomplete [onoff]", "turn on/off autocomplete", (yargs) => {
+    yargs.positional('onoff', {
+      describe: 'enable or disable autocomplete for this program.',
+      type: "string",
+      default: 'true',
+    }),
+      yargs.options({
+        shellConfigPath: {
+          alias: "s",
+          describe: "the path of your shell config. e.g ./bashrc. This will add a hook on your shell config.",
+          type: "string",
+        }
+      })
+  }, autoCompleteHandler)
+
   .usage(chalk.yellow(logo))
   .help()
   .version("current version: 0.1.0")
@@ -136,7 +196,6 @@ const cmdArgs = yargs
   .epilog("more information from https://github.com/ailrk/canvas-spider")
   .showHelpOnFail(false, "whoops, something wrong. run with --help")
   .argv;
-
 
 if (!cmdArgs._[0]) {
   yargs.showHelp();

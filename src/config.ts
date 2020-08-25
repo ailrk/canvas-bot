@@ -46,7 +46,6 @@ export function mkDefaultConfig(): ConfigBuilder {
   }
 }
 
-
 export async function createDotEnv(auth: Auth) {
   if (await promisify(fs.exists)(".env")) {
     type EnvType = {
