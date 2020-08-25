@@ -1,6 +1,6 @@
 {
   "name": "canvas-bot",
-  "version": "0.5.1",
+  "version": "0.7.0",
   "description": "automate stuffs on canvas",
   "main": "dist/index.js",
   "type": "dist/index.d.ts",

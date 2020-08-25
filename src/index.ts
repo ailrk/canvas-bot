@@ -190,10 +190,10 @@ function autoCompleteHandler(args: {
 
     .usage(chalk.yellow(logo))
     .help()
-    .version("current version: 0.1.0")
+    .version("current version: 0.7.0")
     .alias('help', 'h')
     .alias('version', 'v')
-    .epilog("more information from https://github.com/ailrk/canvas-spider")
+    .epilog("more information from https://github.com/ailrk/canvas-bot")
     .showHelpOnFail(false, "whoops, something wrong. run with --help")
     .argv;
 
