@@ -49,4 +49,3 @@ async function getSnapShotList(config: Config): Promise<string[] | undefined> {
       }).map(e => e.toJSON() + '-snapshot');
   return sortedList;
 }
-

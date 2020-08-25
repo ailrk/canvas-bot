@@ -1,10 +1,10 @@
 {
-  "name": "canvas-spider",
+  "name": "canvas-bot",
   "version": "0.4.0",
   "description": "automate stuffs on canvas",
   "main": "dist/index.js",
   "type": "dist/index.d.ts",
-  "homepage": "https://github.com/ailrk/canvas-spider",
+  "homepage": "https://github.com/ailrk/canvas-bot",
   "scripts": {
     "test": "npm run build && jest",
     "build": "rimraf dist && tsc"
@@ -21,7 +21,7 @@
   "author": "Ailrk",
   "license": "MIT",
   "bin": {
-    "canvasSpider": "./dist/index.js"
+    "canvasBot": "./dist/index.js"
   },
   "moduleFileExtensions": [
     "ts"
