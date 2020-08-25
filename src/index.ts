@@ -1,5 +1,6 @@
 #! node
 
+import omlette from 'omelette';
 import yargs from 'yargs';
 import chalk from 'chalk';
 import * as Cmd from './cmd';
@@ -14,6 +15,16 @@ export const logo = ""
   + "    \\___\\__,_|_| |_|\\_/ \\__,_|___/      |___/ .__/|_|\\__,_|\\___|_|    \n"
   + "                                            | |                       \n"
   + "                                            |_|                       \n";
+
+
+const completion = omlette("canvasBot <command>");
+
+
+completion.on('command',
+  ({reply}) =>
+    reply(['template', 'user', 'courses', 'download', 'quota']));
+
+completion.init();
 
 
 const cmdArgs = yargs

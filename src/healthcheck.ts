@@ -102,10 +102,6 @@ async function checkBaseDir(config: Config) {
     }
 
   } catch (err) {
-    // directory doesn't exist
-    console.log(""
-      + chalk.blue(`base dir ${baseDirPath} doesn't exist.`
-        + ` creating a new one ...`));
     try {
       await mkdir(baseDirPath);
     } catch (_) {

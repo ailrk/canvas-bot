@@ -116,6 +116,7 @@ async function readYaml(p: Path) {
     file = (await readFile(path.resolve(p.path))).toString();
   } catch (err) {
     console.error(chalk.red(`yaml file ${p.path} doesn't exist`));
+    console.error(chalk.yellow("you can generate one with `canvasBot template`"))
     process.exit(0);
   }
 

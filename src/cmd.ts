@@ -46,44 +46,51 @@ export const quotaCommandHandler = commandHandlerFactory(async () => {
 });
 
 
-export const yamlGenerateHandler =
-  commandHandlerFactory(async (args: Partial<{
-    base: string,
-    limit: string,
-    "file-limit": string,
-    "file-wlist": string,
-    "file-blist": string,
-    "file-ext-wlist": string,
-    "file-ext-blist": string,
-    "update-method": string,
-    verbosity: string,
-  }>) => {
-    const parseList = (list?: string) => {
-      if (list !== undefined) {
-        return list.split(",")
-          .map(e => e.trim())
-          .filter(e => e !== "");
-      }
-      return [];
-    };
+export async function yamlGenerateHandler(args: Partial<{
+  base: string,
+  limit: string,
+  "file-limit": string,
+  "file-wlist": string,
+  "file-blist": string,
+  "file-ext-wlist": string,
+  "file-ext-blist": string,
+  "update-method": string,
+  verbosity: string,
+}>) {
+  const parseList = (list?: string) => {
+    if (list !== undefined) {
+      return list.split(",")
+        .map(e => e.trim())
+        .filter(e => e !== "");
+    }
+    return [];
+  };
 
-    console.log(parseList(args["file-blist"]));
-    const config = <Config>{
-      ...Con.mkDefaultConfig(),
-      baseDir: P.mkPath(args.base ?? "./canvasDownload", "dontcreate"),
-      maxFileSize: convertToBytes(args["file-limit"] ?? Infinity),
-      maxTotalSize: convertToBytes(args["limit"] ?? Infinity),
-      fileBlackList: parseList(args["file-blist"]),
-      fileWhiteList: parseList(args["file-wlist"]),
-      fileExtensionBlackList: parseList(args["file-ext-blist"]),
-      fileExtensionWhiteList: parseList(args["file-ext-wlist"]),
-      update: isConfigUpdate(args["update-method"]) ? args["update-method"] : "newFileOnly",
-      verbosity: isConfigVerbosity(args["verbosity"]) ? args["verbosity"] : "verbose"
-    };
-    await promisify(fs.writeFile)
-      ("./generatedConfig.yaml", yamljs.stringify(config));
-    process.exit();
-  });
+  const config = <Config>{
+    ...Con.mkDefaultConfig(),
+    authentication: {
+      key: "",
+      url: "",
+    },
+    baseDir: P.mkPath(args.base ?? "./canvasDownload", "dontcreate"),
+    maxFileSize: convertToBytes(args["file-limit"] ?? Infinity),
+    maxTotalSize: convertToBytes(args["limit"] ?? Infinity),
+    fileBlackList: parseList(args["file-blist"]),
+    fileWhiteList: parseList(args["file-wlist"]),
+    fileExtensionBlackList: parseList(args["file-ext-blist"]),
+    fileExtensionWhiteList: parseList(args["file-ext-wlist"]),
+    update: isConfigUpdate(args["update-method"]) ? args["update-method"] : "newFileOnly",
+    verbosity: isConfigVerbosity(args["verbosity"]) ? args["verbosity"] : "verbose"
+  };
+  await promisify(fs.writeFile)
+    ("./main.yaml", yamljs.stringify(config));
+  console.log(chalk.blue(""
+    + "new main.yaml is generated. "
+    + "You need to fill the authentication field in the yaml file. "
+    + "More information please check "
+    + chalk.yellow("https://github.com/ailrk/canvas-bot/blob/master/config-demo.yaml")));
+  process.exit();
+}
 
 
 export const courseCommandHandler =
