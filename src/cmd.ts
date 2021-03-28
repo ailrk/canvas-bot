@@ -59,7 +59,7 @@ export async function yamlGenerateHandler(args: Partial<{
   verbosity: string,
 }>) {
   const parseList = (list?: string) => {
-    if (list !== undefined) {
+    if (list) {
       return list.split(",")
         .map(e => e.trim())
         .filter(e => e !== "");
@@ -103,9 +103,9 @@ export const courseCommandHandler =
         name: e.name,
         id: i,
         courseCode: e.course_code,
-        startAt: e.start_at.split('T')[0],
-        endAt: e.end_at.split('T')[0],
-        progres: e.course_progress
+        startAt: e.start_at?.split('T')[0],
+        endAt: e.end_at?.split('T')[0],
+        progres: e?.course_progress
       }));
 
     console.log();

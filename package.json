@@ -7,7 +7,8 @@
   "homepage": "https://github.com/ailrk/canvas-bot",
   "scripts": {
     "test": "npm run build && jest",
-    "build": "rimraf dist && tsc"
+    "build": "rimraf dist && tsc",
+    "relink": "npm run build && sudo npm link"
   },
   "keywords": [
     "canvas",
