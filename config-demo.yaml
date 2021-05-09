@@ -48,13 +48,13 @@ verbosity: verbose
 
 courseWhilteList:
   # can be id
-  - 0
+  # - 0
   # or course code
-  - MATH 462
+  - COSC 211
 
 courseBlackList:
-  - 3
-  - SOCIOLOGY 101
+  # - 3
+  # - SOCIOLOGY 101
 
 # file name in this list will not be downloaded.
 fileBlackList:
